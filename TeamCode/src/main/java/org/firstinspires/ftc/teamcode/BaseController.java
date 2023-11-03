@@ -54,30 +54,9 @@ public class BaseController extends LinearOpMode {
     public ElapsedTime runtime = new ElapsedTime();
     public double encoderTicksPerRevolution = 537.7;
 
-    // distance sensor stuff
-    private Rev2mDistanceSensor distanceSensorR = null;
-    private Rev2mDistanceSensor distanceSensorL = null;
-    private double distanceBetweenSensors = 144; // mm, need to refine value
-    private double WALL_CONSIDERATION_THRESHOLD = Math.toRadians(2.5); // radians duh
-
-    // arm stuff
-    private DcMotor armMotor;
-    public int ARM_MIN_ENCODER_VALUE = -3075;
-    public int ARM_MAX_ENCODER_VALUE = 0; // for now, change it once we get a concrete value
-    public int goalArmEncoderValue = 0;
-    public int armStage = 0;
-    public int[] armStageEncoderValues = {0, -1400, -2200, -3075};
-    public int realArmEncoderValue = 0;
-    private final double FULL_ARM_POWER_ENCODER_TICK_THRESHOLD = 20.0;
-
-    // claw stuff
-    private Servo clawServoL;
-    private Servo clawServoR;
-    private double openClawPosL = 0.775;
-    private double openClawPosR = 0.275;
-    private double closedClawPosL = 0.65; //0.575;
-    private double closedClawPosR = 0.385;//0.5;
-    public boolean clawOpen = false;
+    public final double IN_TO_MM = 25.4;
+    public final double FIELD_SIZE = 141.345 * IN_TO_MM;
+    public final double TILE_SIZE = FIELD_SIZE/6.0;
 
     // wheel stuff
     private DcMotor[] wheelMap; // list of the wheel DcMotors
@@ -85,11 +64,10 @@ public class BaseController extends LinearOpMode {
     private double[] axialMovementMap = {1, 1, 1, 1}; // base wheel powers required for axial (i.e. forward/backward) movement
     private double[] lateralMovementMap = {1, -1, -1, 1}; // base wheel powers required for lateral (i.e. side to side) movement
     private double[] turnMap = {-1, -1, 1, 1}; // base wheel powers required for turning
-    private double wheelDiameter = 100.0; // millimeters
-    private double wheelDistancePerEncoderTick = (100.0 * Math.PI)/encoderTicksPerRevolution;
+    private double wheelDiameter = 96.0; // millimeters
+    private double wheelDistancePerEncoderTick = (wheelDiameter * Math.PI)/encoderTicksPerRevolution;
 
     // movement stuff
-    private boolean freeMovement = false;
     public VectorF movementVector = new VectorF(0, 0, 0, 1); // movement vector is in the bot's local space
     public VectorF displacement = new VectorF(0, 0, 0, 0);
     private OpenGLMatrix displacementMatrix = OpenGLMatrix.identityMatrix();
@@ -146,31 +124,14 @@ public class BaseController extends LinearOpMode {
         return a + (b - a) * alpha;
     }
 
-    public double roundToNearest(double num, double interval) {
+    public double round(double num, double interval) {
         return (Math.round(num/interval) * interval);
     }
 
-    // arm
-    public void setClawOpen(boolean val) {
-        clawOpen = val;
-        clawServoL.setPosition(val ? openClawPosL : closedClawPosL);
-        clawServoR.setPosition(val ? openClawPosR : closedClawPosR);
-    }
-
-    public void setArmStage(int stage) {
-        int lastStage = armStage;
-        armStage = Math.max(Math.min(stage, armStageEncoderValues.length - 1), 0);
-        goalArmEncoderValue = armStageEncoderValues[armStage];
-        if (lastStage > 0 && stage == 0 && clawOpen) {
-            setClawOpen(false);
-        }
-    }
-
-    // yeah bro
-    public void applyMovement() {
+    private void applyMovement() {
         float axialMovement = movementVector.get(1);
         float lateralMovement = movementVector.get(0);
-        double maxPowerMagnitude = map(realArmEncoderValue, -1300, -3000, 1, 0.5, true);
+        double maxPowerMagnitude = 1; //map(realArmEncoderValue, -1300, -3000, 1, 0.5, true);
         for (int i = 0; i < 4; i++) {
             wheelPowers[i] = (axialMovementMap[i] * axialMovement + lateralMovementMap[i] * lateralMovement + turnMap[i] * turnVelocity);
             maxPowerMagnitude = Math.max(maxPowerMagnitude, wheelPowers[i]);
@@ -181,8 +142,6 @@ public class BaseController extends LinearOpMode {
         }
     }
 
-    // rotation
-    
     private void updateRotationData() {
         Orientation rawOrientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZXY, AngleUnit.RADIANS);
         rotation = normalizeAngle(rawOrientation.firstAngle - referenceRotation, AngleUnit.RADIANS);
@@ -194,7 +153,7 @@ public class BaseController extends LinearOpMode {
         turnVelocity = vel;
     }
 
-    public void applyTargetRotation() {
+    private void applyTargetRotation() {
         float turnDiff = (float) normalizeAngle(targetRotation - rotation, AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);
         float tvel = ((float) (Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower));
@@ -223,7 +182,6 @@ public class BaseController extends LinearOpMode {
     // movement/strafing
     public void setWorldMovementVector(VectorF vector) {
         movementVector = rotationMatrix.multiplied(vector);
-        //applyMovement();
     }
 
     public void setMovementVectorRelativeToTargetOrientation(VectorF vector) {
@@ -257,7 +215,7 @@ public class BaseController extends LinearOpMode {
         return movementVector;
     }
 
-    public void initialize() {
+    public void baseInitialize() {
 
         // WHEEL SETUP
         {
@@ -294,25 +252,6 @@ public class BaseController extends LinearOpMode {
             // parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
             imu.initialize(parameters);
-        }
-
-        // ARM SETUP
-
-        {
-            armMotor = hardwareMap.get(DcMotor.class, "ArmMotor");
-            //armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            telemetry.addData("Arm Status", "Reset arm motor encoder.");
-            armMotor.setTargetPosition(goalArmEncoderValue);
-            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-
-        // CLAW SETUP
-        {
-            clawServoL = hardwareMap.get(Servo.class, "ClawL");
-            clawServoR = hardwareMap.get(Servo.class, "ClawR");
-            clawServoL.setPosition(openClawPosL);
-            clawServoR.setPosition(openClawPosR);
         }
 
         // INITIALIZATION TELEMETRY
@@ -402,32 +341,6 @@ public class BaseController extends LinearOpMode {
             telemetry.addData("Displacement", displacementMatrix.formatAsTransform(AxesReference.INTRINSIC, AxesOrder.ZXY, AngleUnit.DEGREES));
         }
 
-        // ARM HANDLING
-        {
-            goalArmEncoderValue = (int) clamp(goalArmEncoderValue, ARM_MIN_ENCODER_VALUE, ARM_MAX_ENCODER_VALUE);
-            // recalculate arm stage
-            /*for (int i = armStageEncoderValues.length - 1; i >= 0; i--) {
-                if (i == 0) {
-                    armStage = 0;
-                } else if (goalArmEncoderValue >= (armStageEncoderValues[i] + armStageEncoderValues[i - 1])/2) {
-                    armStage = i;
-                    break;
-                }
-            }*/
-            armMotor.setTargetPosition(goalArmEncoderValue);
-            realArmEncoderValue = armMotor.getCurrentPosition();
-
-            double power = Math.min(Math.abs((double) (goalArmEncoderValue - realArmEncoderValue))/FULL_ARM_POWER_ENCODER_TICK_THRESHOLD, 1);
-            armMotor.setPower(power);
-            telemetry.addData("Arm Goal Encoder", goalArmEncoderValue);
-            telemetry.addData("Arm Actual Encoder", realArmEncoderValue);
-        }
-
-        // CLAW HANDLING
-        {
-            clawServoL.setPosition(clawOpen ? openClawPosL : closedClawPosL);
-            clawServoR.setPosition(clawOpen ? openClawPosR : closedClawPosR);
-        }
 
         // OTHER TELEMETRY AND POST-CALCULATION STUFF
         {
@@ -436,6 +349,9 @@ public class BaseController extends LinearOpMode {
             //telemetry.addData("Local Displacement from Motor Encoders", displacement);
             telemetry.addData("Rotation", Math.toDegrees(rotation));
             telemetry.addData("Target Rotation", Math.toDegrees(targetRotation));
+
+            applyMovement();
+            applyTargetRotation();
         }
     }
 

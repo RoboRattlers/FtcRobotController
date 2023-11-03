@@ -29,10 +29,6 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.openftc.easyopencv.OpenCvCameraFactory;
@@ -57,22 +53,13 @@ class Phase {
 
 public class BaseAutoOp extends BaseController {
 
-    // rotation stuff
     private int phase = 0;
-    private final double IN_TO_MM = 25.4;
-    private final double FIELD_SIZE = 141.345 * IN_TO_MM;
-    private final double TILE_SIZE = FIELD_SIZE/6.0;
     protected double phaseStartTime = 0;
     private boolean phaseEndReached = false;
     private double phaseEndReachedTime = 0;
     private final boolean goToNextPhase = true;
-    private final double clawOpenTime = 0;
-
-    float leftDst = (float) (-TILE_SIZE * 1.0);
-    float fwdDst = (float) (-TILE_SIZE * 2.0);
 
     public ArrayList<Phase> phases = new ArrayList<>();
-    public HashMap<String, Phase> phasesById = new HashMap<>();
     public HashMap<String, Integer> phaseIndicesById = new HashMap<>();
 
     public void addPhase(Runnable init, Runnable step, Supplier<Boolean> check) {
@@ -118,22 +105,19 @@ public class BaseAutoOp extends BaseController {
     int zone = -1;
 
     // dist: 62.5 inches
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public void runOpMode() {
 
-        super.initialize();
+        baseInitialize();
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         telemetry.addData("Camera", camera);
 
         this.autoOpInitialize();
-        
+
         // left distance: 25 in
         // forward distance: 62.5 in
 
-        setClawOpen(false);
         waitForStart();
         runtime.reset();
 
@@ -157,8 +141,6 @@ public class BaseAutoOp extends BaseController {
             telemetry.addData("Phase End Reached Time", phaseEndReachedTime);
             // OTHER TELEMETRY AND POST-CALCULATION STUFF
             {
-                applyTargetRotation();
-                applyMovement();
                 telemetry.update();
             }
         }

@@ -34,131 +34,25 @@ import android.os.Build;
 import androidx.annotation.RequiresApi;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 
 import java.util.function.Supplier;
 
 @TeleOp(name = "Addy", group = "Linear Opmode")
-public class AdvertiseOp extends BaseAutoOp {
+public class AdvertiseOp extends BaseTeleOp {
 
-    // rotation stuff
-    private int phase = 0;
-    private double INITIAL_MAX_SPEED_MULT = 0.6;
-    private double MAX_SPEED_MULT = INITIAL_MAX_SPEED_MULT;
-    private double INITIAL_MAX_ACCEL_TIME = 0.5;
-    private double MAX_ACCEL_TIME = INITIAL_MAX_ACCEL_TIME;
-    private final double IN_TO_MM = 25.4;
-    private final double FIELD_SIZE = 141.345 * IN_TO_MM;
-    private final double TILE_SIZE = FIELD_SIZE/6.0;
-    private final double SLOW_BEGIN_THRESHOLD = 3 * IN_TO_MM;
-    private final double PHASE_CHANGE_THRESHOLD = 0.35 * IN_TO_MM;
-    private final double ROTATION_PHASE_CHANGE_THRESHOLD = Math.toRadians(1.0);
-    private VectorF desiredDisplacement = displacement;
+    private Servo armServo;
 
-    Supplier<Boolean> MovementPhaseCheck = () -> {
-        VectorF diff = desiredDisplacement.subtracted(displacement);
-        return diff.magnitude() < PHASE_CHANGE_THRESHOLD;
-    };
+    @Override
+    public void teleOpInitialize() {
+        armServo = hardwareMap.get(Servo.class, "armServo");
+    }
 
-    Supplier<Boolean> RotationPhaseCheck = () -> {
-        return Math.abs(targetRotation - rotation) < ROTATION_PHASE_CHANGE_THRESHOLD;
-    };
-
-    Runnable MovementPhaseStep = () -> {
-        VectorF diff = desiredDisplacement.subtracted(displacement);
-        if (diff.magnitude() > 0.0) {
-            double speedMult = (Math.min(runtime.seconds() - phaseStartTime, MAX_ACCEL_TIME) / MAX_ACCEL_TIME) // initial acceleration
-                    * Math.min(diff.magnitude(), SLOW_BEGIN_THRESHOLD) / SLOW_BEGIN_THRESHOLD // ending deceleration;
-                    * MAX_SPEED_MULT;
-            VectorF dir = diff.multiplied((float) (1.0 / diff.magnitude())).multiplied((float) Math.max(speedMult, 0.075));
-            telemetry.addData("Movement Dir", dir);
-            setWorldMovementVector(dir);
-        } else {
-            setWorldMovementVector(new VectorF(0, 0, 0, 0));
-        }
-    };
-
-    Runnable InitialMovementPhaseStep = () -> {
-        VectorF diff = desiredDisplacement.subtracted(displacement);
-        if (diff.magnitude() > 0.0) {
-            double speedMult = (Math.min(runtime.seconds() - phaseStartTime, MAX_ACCEL_TIME) / MAX_ACCEL_TIME) // initial acceleration
-                    //* Math.min(diff.magnitude(), SLOW_BEGIN_THRESHOLD) / SLOW_BEGIN_THRESHOLD // ending deceleration;
-                    * MAX_SPEED_MULT;
-            VectorF dir = diff.multiplied((float) (1.0 / diff.magnitude())).multiplied((float) speedMult);
-            telemetry.addData("Movement Dir", dir);
-            setWorldMovementVector(dir);
-        } else {
-            setWorldMovementVector(new VectorF(0, 0, 0, 0));
-        }
-    };
-
-    Runnable IntermediateMovementPhaseStep = () -> {
-        VectorF diff = desiredDisplacement.subtracted(displacement);
-        if (diff.magnitude() > 0.0) {
-            double speedMult = MAX_SPEED_MULT;
-            VectorF dir = diff.multiplied((float) (1.0 / diff.magnitude())).multiplied((float) speedMult);
-            telemetry.addData("Movement Dir", dir);
-            setWorldMovementVector(dir);
-        } else {
-            setWorldMovementVector(new VectorF(0, 0, 0, 0));
-        }
-    };
-
-    Runnable EndMovementPhaseStep = () -> {
-        VectorF diff = desiredDisplacement.subtracted(displacement);
-        if (diff.magnitude() > 0.0) {
-            double speedMult = Math.min(diff.magnitude(), SLOW_BEGIN_THRESHOLD) / SLOW_BEGIN_THRESHOLD * MAX_SPEED_MULT;
-            VectorF dir = diff.multiplied((float) (1.0 / diff.magnitude())).multiplied((float) speedMult);
-            telemetry.addData("Movement Dir", dir);
-            setWorldMovementVector(dir);
-        } else {
-            setWorldMovementVector(new VectorF(0, 0, 0, 0));
-        }
-    };
-
-
-    // opencv
-    AprilTagDetectionPipeline aprilTagDetectionPipeline;
-    ColorDetectionPipeline colorDetectionPipeline;
-    final float DECIMATION_LOW = 2;
-    double fx = 578.272;
-    double fy = 578.272;
-    double cx = 402.145;
-    double cy = 221.506;
-    double tagsize = 0.166;
-    public double[] coneColor = new double[]{0, 0, 255};
-    //int zone = -1;
-
-    // variable params
-    float leftDst = (float) (-TILE_SIZE * 1.0);
-    float fwdDst = (float) (-TILE_SIZE * 2.0);
-    boolean placeFirstConeImmediately = false;
-    int reps = 2;
-
-    // dist: 62.5 inches
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public void autoOpInitialize() {
-
-        // detect zone
-        addPhase(() -> {
-        }, () -> {
-            if (runtime.seconds() % 2 > 1) {
-                setTargetRotation(Math.toRadians(0));
-            } else {
-                setTargetRotation(Math.toRadians(30));
-            }
-            if (runtime.seconds() % 2 > 0.5 && runtime.seconds() % 2 < 1.5) {
-                setArmStage(1);
-            } else {
-                setArmStage(2);
-            }
-        }, () -> zone != -1);
-
-        float initialOffset = (float) (-2.5 * IN_TO_MM);
-        float midLeftDst = (float) ((TILE_SIZE/2.0) * Math.signum(leftDst) * 1.0f);
-
+    @Override
+    public void teleOpStep() {
+        armServo.setPosition(map(Math.sin(runtime.seconds()), -1.0, 1.0, 0.65, 0.8, false));
     }
 
 }
