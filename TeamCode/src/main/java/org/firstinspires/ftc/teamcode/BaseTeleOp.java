@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
@@ -84,7 +86,7 @@ public class BaseTeleOp extends BaseController {
 
             // MOVEMENT HANDLING
             {
-                VectorF rawMoveVector;
+                Pose2d rawMovePose;
                 double xMoveFactor = currentGamepadState.left_stick_x
                         + (currentGamepadState.dpad_right ? 1 : 0)
                         - (currentGamepadState.dpad_left ? 1 : 0);
@@ -96,9 +98,9 @@ public class BaseTeleOp extends BaseController {
                     magnitude = Math.min(magnitude, 1.0);
                     double angle = Math.atan2(currentGamepadState.left_stick_y, currentGamepadState.left_stick_x);
                     double newAngle = round(angle, RIGHT_ANGLE/2.0);
-                    rawMoveVector = new VectorF((float) (Math.cos(newAngle) * magnitude), (float) (Math.sin(newAngle) * magnitude), 0, 0);
+                    rawMovePose = new Pose2d(Math.cos(newAngle) * magnitude, Math.sin(newAngle) * magnitude);
                 } else {
-                    rawMoveVector = new VectorF(0, 0, 0, 0);
+                    rawMovePose = new Pose2d();
                 }
                 if (currentGamepadState.a && !lastGamepadState.a) { // alternate movement style
                     freeMovement = !freeMovement;
@@ -134,10 +136,12 @@ public class BaseTeleOp extends BaseController {
                         }
                     }
                     // application
-                    if (rawMoveVector.magnitude() < 0.01) {
-                        setLocalMovementVector(new VectorF(0, 0, 0, 1));
+                    if (rawMovePose.vec().distTo(new Vector2d(0, 0)) < 0.01) {
+                        drive.setWeightedDrivePower(new Pose2d());
                     } else {
-                        setMovementVectorRelativeToTargetOrientation(rawMoveVector);
+                        // if the raw move vector is in world space, this is transformed
+                        Pose2d transformedMovePose = rawMovePose.minus(new Pose2d(0, 0, localizer.getPoseEstimate().getHeading()));
+                        drive.setWeightedDrivePower(transformedMovePose);
                     }
 
                 } else { // free movement
@@ -146,11 +150,6 @@ public class BaseTeleOp extends BaseController {
                     setTargetRotation(rotation);
                     setTurnVelocity(freeTurnSpeed * -currentGamepadState.right_stick_x);
                 }
-            }
-
-            if (currentGamepadState.y && !lastGamepadState.y) { // set the current rotation as the new frame of reference
-                setReferenceRotation(rotation);
-                setTargetRotation(0);
             }
 
             teleOpStep();

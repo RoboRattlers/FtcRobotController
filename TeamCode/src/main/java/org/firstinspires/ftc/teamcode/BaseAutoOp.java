@@ -95,7 +95,6 @@ public class BaseAutoOp extends BaseController {
     }
 
     // opencv
-    AprilTagDetectionPipeline aprilTagDetectionPipeline;
     final float DECIMATION_LOW = 2;
     double fx = 578.272;
     double fy = 578.272;
