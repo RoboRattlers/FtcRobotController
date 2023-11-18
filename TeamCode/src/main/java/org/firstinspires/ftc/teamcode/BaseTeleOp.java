@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -82,11 +83,10 @@ public class BaseTeleOp extends BaseController {
             currentGamepad2State.copy(gamepad2);
 
             telemetry.addData("Controls", CONTROL_STRING);
-            baseUpdate();
 
             // MOVEMENT HANDLING
             {
-                Pose2d rawMovePose;
+                Vector2d rawMoveVector;
                 double xMoveFactor = currentGamepadState.left_stick_x
                         + (currentGamepadState.dpad_right ? 1 : 0)
                         - (currentGamepadState.dpad_left ? 1 : 0);
@@ -98,61 +98,60 @@ public class BaseTeleOp extends BaseController {
                     magnitude = Math.min(magnitude, 1.0);
                     double angle = Math.atan2(currentGamepadState.left_stick_y, currentGamepadState.left_stick_x);
                     double newAngle = round(angle, RIGHT_ANGLE/2.0);
-                    rawMovePose = new Pose2d(Math.cos(newAngle) * magnitude, Math.sin(newAngle) * magnitude);
+                    rawMoveVector = new Vector2d(Math.cos(newAngle) * magnitude, Math.sin(newAngle) * magnitude);
                 } else {
-                    rawMovePose = new Pose2d();
+                    rawMoveVector = new Vector2d();
                 }
                 if (currentGamepadState.a && !lastGamepadState.a) { // alternate movement style
                     freeMovement = !freeMovement;
                 }
                 if (!freeMovement) {
                     // turning
-                    double nearestRightAngle = round(targetRotation, RIGHT_ANGLE);
-                    double targetRotationDiff = targetRotation - nearestRightAngle;
+                    double targetHeading = getTargetHeading();
+                    double nearestRightAngle = round(targetHeading, RIGHT_ANGLE);
+                    double targetRotationDiff = targetHeading - nearestRightAngle;
                     if (Math.abs(targetRotationDiff) < 0.01) {
                         if (currentGamepadState.left_bumper && !lastGamepadState.left_bumper) {
-                            setTargetRotation(round(targetRotation, RIGHT_ANGLE)); // snap target rotation to 90 degree angles
-                            setTargetRotation(targetRotation + RIGHT_ANGLE);
+                            setTargetHeading(round(targetHeading, RIGHT_ANGLE)); // snap target rotation to 90 degree angles
+                            setTargetHeading(targetHeading + RIGHT_ANGLE);
                         }
                         if (currentGamepadState.right_bumper && !lastGamepadState.right_bumper) {
-                            setTargetRotation(round(targetRotation, RIGHT_ANGLE)); // snap target rotation to 90 degree angles
-                            setTargetRotation(targetRotation - RIGHT_ANGLE);
+                            setTargetHeading(round(targetHeading, RIGHT_ANGLE)); // snap target rotation to 90 degree angles
+                            setTargetHeading(targetHeading - RIGHT_ANGLE);
                         }
                     } else {
-                        if (normalizeAngle(targetRotation - nearestRightAngle, AngleUnit.RADIANS) < 0.0) {
+                        if (normalizeAngle(targetHeading - nearestRightAngle, AngleUnit.RADIANS) < 0.0) {
                             if (currentGamepadState.left_bumper && !lastGamepadState.left_bumper) {
-                                setTargetRotation(nearestRightAngle);
+                                setTargetHeading(nearestRightAngle);
                             }
                             if (currentGamepadState.right_bumper && !lastGamepadState.right_bumper) {
-                                setTargetRotation(nearestRightAngle - RIGHT_ANGLE);
+                                setTargetHeading(nearestRightAngle - RIGHT_ANGLE);
                             }
                         } else {
                             if (currentGamepadState.left_bumper && !lastGamepadState.left_bumper) {
-                                setTargetRotation(nearestRightAngle + RIGHT_ANGLE);
+                                setTargetHeading(nearestRightAngle + RIGHT_ANGLE);
                             }
                             if (currentGamepadState.right_bumper && !lastGamepadState.right_bumper) {
-                                setTargetRotation(nearestRightAngle);
+                                setTargetHeading(nearestRightAngle);
                             }
                         }
                     }
                     // application
-                    if (rawMovePose.vec().distTo(new Vector2d(0, 0)) < 0.01) {
-                        drive.setWeightedDrivePower(new Pose2d());
+                    if (rawMoveVector.distTo(new Vector2d(0, 0)) < 0.01) {
+                        setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
                     } else {
-                        // if the raw move vector is in world space, this is transformed
-                        Pose2d transformedMovePose = rawMovePose.minus(new Pose2d(0, 0, localizer.getPoseEstimate().getHeading()));
-                        drive.setWeightedDrivePower(transformedMovePose);
+                        setMoveDir(rawMoveVector, CoordinateSystem.TARGET_HEADING);
                     }
 
                 } else { // free movement
-                    // just a bunch of application this is ez
-                    setLocalMovementVector(rawMoveVector.multiplied((float) freeMoveSpeed));
-                    setTargetRotation(rotation);
+                    setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
+                    setTargetHeading(localizer.getPoseEstimate().getHeading());
                     setTurnVelocity(freeTurnSpeed * -currentGamepadState.right_stick_x);
                 }
             }
 
             teleOpStep();
+            baseUpdate();
 
             // OTHER TELEMETRY AND POST-CALCULATION STUFF
             {

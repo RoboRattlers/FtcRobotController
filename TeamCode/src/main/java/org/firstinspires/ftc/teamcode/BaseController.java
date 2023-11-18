@@ -29,7 +29,13 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
+
+import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.localization.Localizer;
+import com.acmerobotics.roadrunner.util.Angle;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -52,6 +58,12 @@ import org.openftc.easyopencv.OpenCvCamera;
 import java.io.File;
 import java.io.IOException;
 
+enum CoordinateSystem {
+    ROBOT,
+    WORLD,
+    TARGET_HEADING
+}
+
 public class BaseController extends LinearOpMode {
 
     public ElapsedTime runtime = new ElapsedTime();
@@ -63,7 +75,12 @@ public class BaseController extends LinearOpMode {
 
     // movement stuff
     public SampleMecanumDrive drive;
-    public StandardTrackingWheelLocalizer localizer;
+    public Localizer localizer;
+    private double targetHeading;
+    private double turnVelocity;
+    private Vector2d moveDir;
+    private double rotationDampeningThreshold = Math.toRadians(45);
+    private double rotationPower = 0.9;
 
     // rotation stuff
     public final double RIGHT_ANGLE = Math.PI/2.0;
@@ -72,51 +89,51 @@ public class BaseController extends LinearOpMode {
     public double deltaTime = 0.0;
 
     // generic math functions
-    public double modulo(double a, double b) {
-        return  (a % b + b) % b;
-    }
 
-    public double map(double num, double oldMin, double oldMax, double newMin, double newMax, boolean clamp) {
-        double newValue = (num - oldMin)/(oldMax - oldMin) * (newMax - newMin) + newMin;
-        if (clamp) {
-            newValue = clamp(newValue, newMin, newMax);
-        }
-        return newValue;
-    }
-
-    public double clamp(double num, double min, double max) {
-        double max2 = Math.max(min, max);
-        double min2 = Math.min(min, max);
-        return Math.min(Math.max(num, min2), max2);
-    }
-
-    public double normalizeAngle(double angle, AngleUnit angleUnit) {
-        if (angleUnit == AngleUnit.DEGREES) {
-            return modulo((angle + 180), 360) - 180;
-        } else {
-            return modulo((angle + Math.PI), 2 * Math.PI) - Math.PI;
-        }
-    }
-
-    public double lerp(double a, double b, double alpha) {
-        return a + (b - a) * alpha;
-    }
-
-    public double round(double num, double interval) {
-        return (Math.round(num/interval) * interval);
-    }
-
-    private void applyTargetRotation() {
-        float turnDiff = (float) normalizeAngle(targetRotation - rotation, AngleUnit.RADIANS);
+    public void applyTargetHeading() {
+        double turnDiff = normalizeAngle(targetHeading - localizer.getPoseEstimate().getHeading(), AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);
-        float tvel = ((float) (Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower));
+        double tvel = Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower;
         if (Math.abs(tvel) > 0.02) {
-            setTurnVelocity(tvel);
+            turnVelocity = tvel;
         } else {
-            setTurnVelocity(0);
+            turnVelocity = 0;
         }
     }
 
+    public void setTurnVelocity(double tvel) {
+        turnVelocity = tvel;
+    }
+
+    public void setTargetHeading(double thead) {
+        targetHeading = normalizeAngle(thead, AngleUnit.RADIANS);
+    }
+
+    public double getTargetHeading() {
+        return targetHeading;
+    }
+
+    public void setMoveDir(Vector2d dir, CoordinateSystem space) {
+        if (dir.distTo(new Vector2d()) == 0) {
+            moveDir = new Vector2d();
+            return;
+        }
+        double transformedHeading;
+        Pose2d transformedDir;
+        double rawHeading = Math.atan2(dir.getY(), dir.getX());
+        double robotHeading = localizer.getPoseEstimate().getHeading();
+        if (space == CoordinateSystem.WORLD) {
+            transformedHeading = rawHeading - robotHeading;
+        } else if (space == CoordinateSystem.TARGET_HEADING) {
+            double headingInWorldSpace = rawHeading - targetHeading;
+            transformedHeading = headingInWorldSpace - robotHeading;
+        } else {
+            transformedHeading = rawHeading;
+        }
+
+        moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()));
+
+    }
     public void baseInitialize() {
 
         drive = new SampleMecanumDrive(hardwareMap);
@@ -150,11 +167,13 @@ public class BaseController extends LinearOpMode {
 
         // OTHER TELEMETRY AND POST-CALCULATION STUFF
         {
+            drive.updatePoseEstimate();
+            drive.setDriveSignal(new DriveSignal(new Pose2d(moveDir, turnVelocity)));
             telemetry.addData("Run Time", runtime.toString());
-            telemetry.addData("Local Movement Vector", movementVector);
+            telemetry.addData("Local Movement Vector", moveDir);
             //telemetry.addData("Local Displacement from Motor Encoders", displacement);
-            telemetry.addData("Rotation", Math.toDegrees(rotation));
-            telemetry.addData("Target Rotation", Math.toDegrees(targetRotation));
+            telemetry.addData("Heading", Math.toDegrees(localizer.getPoseEstimate().getHeading()));
+            telemetry.addData("Target Heading", Math.toDegrees(targetHeading));
         }
     }
 

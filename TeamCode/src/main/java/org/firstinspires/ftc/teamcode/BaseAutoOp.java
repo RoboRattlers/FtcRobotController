@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.openftc.easyopencv.OpenCvCameraFactory;
@@ -94,28 +96,12 @@ public class BaseAutoOp extends BaseController {
     public void autoOpInitialize () {
     }
 
-    // opencv
-    final float DECIMATION_LOW = 2;
-    double fx = 578.272;
-    double fy = 578.272;
-    double cx = 402.145;
-    double cy = 221.506;
-    double tagsize = 0.166;
-    int zone = -1;
-
     // dist: 62.5 inches
     @Override
     public void runOpMode() {
 
         baseInitialize();
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
-        telemetry.addData("Camera", camera);
-
         this.autoOpInitialize();
-
-        // left distance: 25 in
-        // forward distance: 62.5 in
 
         waitForStart();
         runtime.reset();
@@ -124,11 +110,10 @@ public class BaseAutoOp extends BaseController {
         while (opModeIsActive()) {
 
             baseUpdate();
-            telemetry.addData("Zone", zone);
             Phase phaseFunc = phases.get(phase);
             telemetry.addData("Phase", phaseFunc);
 
-            setLocalMovementVector(new VectorF(0, 0, 0, 0));
+            setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
             phaseFunc.Step.run();
             telemetry.addData("go?", phaseFunc.Check.get());
             if (phaseFunc.Check.get() && phases.size() > phase + 1) {
