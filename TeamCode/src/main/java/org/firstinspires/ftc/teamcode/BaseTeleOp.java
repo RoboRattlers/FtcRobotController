@@ -42,10 +42,10 @@ import org.opencv.core.Size;
 @TeleOp(name="Base TeleOp", group="Linear Opmode")
 public class BaseTeleOp extends BaseController {
 
-    private Gamepad lastGamepadState = new Gamepad();
-    private Gamepad currentGamepadState = new Gamepad();
-    private Gamepad lastGamepad2State = new Gamepad();
-    private Gamepad currentGamepad2State = new Gamepad();
+    public Gamepad lastGamepadState = new Gamepad();
+    public Gamepad currentGamepadState = new Gamepad();
+    public Gamepad lastGamepad2State = new Gamepad();
+    public Gamepad currentGamepad2State = new Gamepad();
     private String CONTROL_STRING = "!!!! MOVEMENT CONTROLS: !!!!"
             + "\nLeft stick to move/strafe"
             + "\nBumpers to rotate 90 degrees"
@@ -54,7 +54,7 @@ public class BaseTeleOp extends BaseController {
             + "\nY to calibrate orientation";
 
     // movement stuff
-    private boolean freeMovement = false;
+    public boolean freeMovement = false;
     private double freeMoveSpeed = 0.25; // multiplier for strafing speeds in "free movement" mode
     private double freeTurnSpeed = 0.25; // multiplier for turning speeds in "free movement" mode
 

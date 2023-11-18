@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.drive;
+package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
 
@@ -15,15 +15,16 @@ public abstract class LinearSlide {
     double cappedLength; // in;
     double encoderTicksPerRevolution;
     double encoderTicksInFullLength;
-    private final double encoderTicksPerInch = encoderTicksInFullLength/fullLength;
+    private final double encoderTicksPerInch = Math.abs(encoderTicksInFullLength/fullLength);
     private final ElapsedTime runtime = new ElapsedTime();
+    private final TargetFollower follower = new TargetFollower(25 * encoderTicksPerInch, 200 * encoderTicksPerInch);
 
     double maxVelocity = 25; // in/sec
     double acceleration = maxVelocity/0.2; // in/sec^2
 
     DcMotorEx motor;
     private final double heightTolerance = 0.1;
-    private final double velocityDampeningThreshold = 3;
+    private final double velocityDampeningThreshold = 0.1;
 
     private double targetHeight = 0;
     private double currentHeight = 0;
@@ -34,7 +35,7 @@ public abstract class LinearSlide {
 
 
     public boolean reachedTarget() {
-        return Math.abs(targetHeight - currentHeight) < heightTolerance;
+        return follower.reachedTarget();
     }
 
     public double getMotorPosForHeight(double height) {
@@ -45,19 +46,20 @@ public abstract class LinearSlide {
         targetHeight = Math.min(Math.max(val, 0), cappedLength);
     }
 
+    public double getTargetHeight() {
+        return targetHeight;
+    }
+
     public void update() {
 
         double deltaTime = runtime.seconds() - lastTime;
         lastTime = runtime.seconds();
 
-        currentHeight = motor.getCurrentPosition()/encoderTicksInFullLength;
-        currentVelocityWithoutP += clamp(Math.signum(targetHeight - currentHeight) * (acceleration * deltaTime), -maxVelocity, maxVelocity);
-        currentVelocity = currentVelocityWithoutP * map(
-                clamp(Math.abs(targetHeight - currentHeight), 0, velocityDampeningThreshold),
-                velocityDampeningThreshold, 0, 1, 0.1, false
-                );
+        targetHeight = clamp(targetHeight, 0, cappedLength);
+        follower.targetPosition = targetHeight/fullLength * encoderTicksInFullLength;
+        follower.update(motor.getCurrentPosition(), motor.getVelocity());
 
-        double velocityInEncoderTicks = encoderTicksPerInch * currentVelocity;
+        double velocityInEncoderTicks = encoderTicksPerInch * follower.getCurrentVelocity();
         motor.setVelocity(velocityInEncoderTicks/encoderTicksPerRevolution * Math.PI * 2, AngleUnit.RADIANS);
 
     }

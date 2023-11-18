@@ -88,8 +88,6 @@ public class BaseController extends LinearOpMode {
     private double lastTick = 0.0;
     public double deltaTime = 0.0;
 
-    // generic math functions
-
     public void applyTargetHeading() {
         double turnDiff = normalizeAngle(targetHeading - localizer.getPoseEstimate().getHeading(), AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);

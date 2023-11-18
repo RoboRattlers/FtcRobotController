@@ -1,8 +1,7 @@
-package org.firstinspires.ftc.teamcode.drive;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-// TODO: measure encoder ticks in full length
 public class ViperSlide336mm extends LinearSlide {
 
 
@@ -10,7 +9,7 @@ public class ViperSlide336mm extends LinearSlide {
     public ViperSlide336mm(DcMotorEx myMotor) {
         motor = myMotor;
         fullLength = 38;
-        cappedLength = 20;
+        cappedLength = 30;
         encoderTicksPerRevolution = 537.7;
         encoderTicksInFullLength = -3150;
     }
