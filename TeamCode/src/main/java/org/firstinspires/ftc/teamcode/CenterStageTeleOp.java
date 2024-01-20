@@ -44,12 +44,31 @@ public class CenterStageTeleOp extends BaseTeleOp {
     private CenterStageHardware gameHardware;
 
     public void teleOpStep() {
-
-        if (currentGamepadState.x && !lastGamepadState.x) {
-            gameHardware.clawOpen = !gameHardware.clawOpen;
-        }
-
         gameHardware.update();
+        if (currentGamepadState.x && !lastGamepadState.x) {
+            gameHardware.toggleClawOpen();
+        }
+        if (!lastGamepadState.dpad_right && currentGamepadState.dpad_right) {
+            gameHardware.incrementClawPose(1);
+        }
+        if (!lastGamepadState.dpad_left && currentGamepadState.dpad_left) {
+            gameHardware.incrementClawPose(-1);
+        }
+        if (currentGamepadState.dpad_up) {
+            gameHardware.prepareForArmPlace();
+        }
+        if (currentGamepadState.dpad_down) {
+            gameHardware.prepareForPush();
+        }
+        if (currentGamepadState.right_trigger > 0.5) {
+            gameHardware.setPokerPusherPos(1);
+        }
+        if (currentGamepadState.left_trigger > 0.5) {
+            gameHardware.setPokerPusherPos(0);
+        }
+        if (currentGamepadState.y) {
+            gameHardware.prepareForClawPlace();
+        }
     }
 
     public void teleOpInitialize() {
