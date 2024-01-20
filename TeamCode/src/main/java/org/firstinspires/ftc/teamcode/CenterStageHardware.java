@@ -11,32 +11,37 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 public class CenterStageHardware {
 
+    private final Servo clawShoulder;
+    private final Servo clawElbow;
+    private final Servo clawWrist   ;
+    private final Servo pokerPusher;
+    private final DcMotorEx armRotator;
+    private final Servo pokerRotator;
+    private final DcMotorEx armExtender;
     private HardwareMap hardwareMap;
     // 0.85 for down, 0.55 for up
-    private Servo clawSwinger;
     private Servo clawOpener;
 
     public boolean clawOpen = false;
 
     public CenterStageHardware(HardwareMap hardware) {
         hardwareMap = hardware;
-        clawSwinger = hardwareMap.get(Servo.class, "ClawSwinger");
-        clawOpener = hardwareMap.get(Servo.class, "ClawOpener");
+        clawShoulder = hardwareMap.get(Servo.class, "ClawShoulder"); // expansion hub servo 0
+        clawElbow = hardwareMap.get(Servo.class, "ClawElbow"); // expansion hub servo 1
+        clawWrist = hardwareMap.get(Servo.class, "ClawWrist"); // expansion hub servo 2
+        clawOpener = hardwareMap.get(Servo.class, "ClawOpener"); // expansion hub servo 3
+        pokerPusher = hardwareMap.get(Servo.class, "PokerPusher"); // control hub servo 0
+        pokerRotator = hardwareMap.get(Servo.class, "PokerRotator"); // control hub servo 1
+        armRotator = hardwareMap.get(DcMotorEx.class, "ArmRotator"); // expansion hub motor 0
+        armExtender = hardwareMap.get(DcMotorEx.class, "ArmExtender"); // expansion hub motor 1
     }
 
     public void defaultPose() {
-        clawOpener.setPosition(0.91);
-        clawSwinger.setPosition(0.55);
-    }
 
-    public void rotateClaw(double angle) {
-        clawSwinger.setPosition(map(angle, 0, 1, 0.91, 0.55, true));
     }
 
     public void update() {
-        clawOpener.setPosition((clawOpen && clawSwinger.getPosition() > 0.6) ? 0.91
-                : clawOpen ? 0.8
-                : 1);
+
     }
 
 }

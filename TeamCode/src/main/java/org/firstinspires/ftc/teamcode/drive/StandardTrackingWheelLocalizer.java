@@ -46,10 +46,11 @@ public class StandardTrackingWheelLocalizer extends ThreeTrackingWheelLocalizer 
         ));
          */
 
+        // center is 1.5, -0.35 off from measurements in f360
         super(Arrays.asList(
                 new Pose2d(92.85/25.4, 113.5/25.4, 0), // left
                 new Pose2d(92.85/25.4, -113.5/25.4, 0), // right
-                new Pose2d(66.15/25.4, 4.475/25.4, Math.toRadians(90)) // front
+                new Pose2d((40.15 - 0.35)/25.4, (4.551 - 1.5)/25.4, Math.toRadians(90)) // front
         ));
 
         lastEncPositions = lastTrackingEncPositions;

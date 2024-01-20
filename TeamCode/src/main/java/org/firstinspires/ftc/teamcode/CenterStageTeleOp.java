@@ -45,12 +45,6 @@ public class CenterStageTeleOp extends BaseTeleOp {
 
     public void teleOpStep() {
 
-        if (currentGamepadState.right_trigger > 0.5) {
-            gameHardware.rotateClaw(0);
-        }
-        if (currentGamepadState.left_trigger > 0.5) {
-            gameHardware.rotateClaw(1);
-        }
         if (currentGamepadState.x && !lastGamepadState.x) {
             gameHardware.clawOpen = !gameHardware.clawOpen;
         }
