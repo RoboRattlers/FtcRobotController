@@ -93,7 +93,7 @@ public class BaseController extends LinearOpMode {
         telemetry.addData("turn diff", turnDiff);
         double tvel = Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower;
         if (Math.abs(tvel) > 0.02) {
-            turnVelocity = tvel;
+            turnVelocity = tvel * 3.25;
         } else {
             turnVelocity = 0;
         }
@@ -129,7 +129,7 @@ public class BaseController extends LinearOpMode {
             transformedHeading = rawHeading;
         }
 
-        moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()));
+        moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()) * 50);
 
     }
     public void baseInitialize() {

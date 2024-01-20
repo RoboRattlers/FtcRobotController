@@ -33,6 +33,7 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 
 import java.util.ArrayList;
@@ -60,6 +61,8 @@ public class BaseAutoOp extends BaseController {
     private boolean phaseEndReached = false;
     private double phaseEndReachedTime = 0;
     private final boolean goToNextPhase = true;
+
+    OpenCvCamera camera;
 
     public ArrayList<Phase> phases = new ArrayList<>();
     public HashMap<String, Integer> phaseIndicesById = new HashMap<>();
@@ -102,6 +105,9 @@ public class BaseAutoOp extends BaseController {
 
         baseInitialize();
         this.autoOpInitialize();
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+        telemetry.addData("Camera", camera);
 
         waitForStart();
         runtime.reset();

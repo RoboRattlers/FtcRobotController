@@ -29,38 +29,62 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.util.MoreMath.normalizeAngle;
-import static org.firstinspires.ftc.teamcode.util.MoreMath.round;
-
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.Gamepad;
+import com.acmerobotics.roadrunner.path.Path;
+import com.acmerobotics.roadrunner.path.PathBuilder;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryGenerator;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.opencv.core.Size;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 
-@TeleOp(name="CenterStage TeleOp", group="Linear Opmode")
-public class CenterStageTeleOp extends BaseTeleOp {
+import java.util.concurrent.atomic.AtomicInteger;
 
-    private CenterStageHardware gameHardware;
+@Autonomous
+public class BadAutoOp extends BaseAutoOp {
 
-    public void teleOpStep() {
+    CenterStagePropDetectionPipeline propDetectionPipeline;
+    CenterStageHardware gameHardware;
+    public void autoOpInitialize () {
 
-        if (currentGamepadState.right_trigger > 0.5) {
-            gameHardware.rotateClaw(0);
-        }
-        if (currentGamepadState.left_trigger > 0.5) {
-            gameHardware.rotateClaw(1);
-        }
-        if (currentGamepadState.x && !lastGamepadState.x) {
-            gameHardware.clawOpen = !gameHardware.clawOpen;
-        }
-
-        gameHardware.update();
-    }
-
-    public void teleOpInitialize() {
+        propDetectionPipeline = new CenterStagePropDetectionPipeline(new Size(), new double[]{0, 0, 255});
         gameHardware = new CenterStageHardware(hardwareMap);
-        gameHardware.defaultPose();
+
+        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
+        {
+            @Override
+            public void onOpened()
+            {
+                camera.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode)
+            {
+
+            }
+        });
+        camera.setPipeline(propDetectionPipeline);
+
+        AtomicInteger zone = new AtomicInteger(-1);
+
+
+        addPhase(() -> {
+            gameHardware.rotateClaw(0);
+            Path path = new PathBuilder(new Pose2d(0, 0, 0))
+                    .lineTo(new Vector2d(TILE_SIZE * 2, 0))
+                    .build();
+            Trajectory traj = TrajectoryGenerator.INSTANCE.generateSimpleTrajectory(path, 10, 100, 1000);
+            drive.followTrajectoryAsync(traj);
+        }, () -> {
+
+        }, () -> !drive.isBusy());
+
     }
 
 }
+

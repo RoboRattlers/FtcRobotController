@@ -46,6 +46,9 @@ public class CenterStagePropDetectionPipeline extends OpenCvPipeline {
         this.targetColor = color;
     }
 
+    public int getZone() {
+        return minDistanceHaver;
+    }
     @Override
     public Mat processFrame(Mat highresInput)
     {

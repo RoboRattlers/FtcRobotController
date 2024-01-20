@@ -54,9 +54,9 @@ public class BaseTeleOp extends BaseController {
             + "\nY to calibrate orientation";
 
     // movement stuff
-    public boolean freeMovement = false;
-    private double freeMoveSpeed = 0.25; // multiplier for strafing speeds in "free movement" mode
-    private double freeTurnSpeed = 0.25; // multiplier for turning speeds in "free movement" mode
+    public boolean freeMovement = true;
+    private double freeMoveSpeed = 0.8; // multiplier for strafing speeds in "free movement" mode
+    private double freeTurnSpeed = 0.8; // multiplier for turning speeds in "free movement" mode
 
     public void teleOpStep() {
     }
@@ -87,16 +87,16 @@ public class BaseTeleOp extends BaseController {
             // MOVEMENT HANDLING
             {
                 Vector2d rawMoveVector;
-                double xMoveFactor = currentGamepadState.left_stick_x
+                double xMoveFactor = -currentGamepadState.left_stick_y
                         + (currentGamepadState.dpad_right ? 1 : 0)
                         - (currentGamepadState.dpad_left ? 1 : 0);
-                double yMoveFactor = currentGamepadState.left_stick_y
+                double yMoveFactor = -currentGamepadState.left_stick_x
                         + (currentGamepadState.dpad_down ? 1 : 0)
                         - (currentGamepadState.dpad_up ? 1 : 0);
                 if (Math.abs(xMoveFactor) + Math.abs(yMoveFactor) > 0.05) {
-                    double magnitude = Math.sqrt(Math.pow(currentGamepadState.left_stick_x, 2) + Math.pow(currentGamepadState.left_stick_y, 2));
+                    double magnitude = Math.sqrt(Math.pow(currentGamepadState.left_stick_y, 2) + Math.pow(currentGamepadState.left_stick_x, 2));
                     magnitude = Math.min(magnitude, 1.0);
-                    double angle = Math.atan2(currentGamepadState.left_stick_y, currentGamepadState.left_stick_x);
+                    double angle = Math.atan2(yMoveFactor, xMoveFactor);
                     double newAngle = round(angle, RIGHT_ANGLE/2.0);
                     rawMoveVector = new Vector2d(Math.cos(newAngle) * magnitude, Math.sin(newAngle) * magnitude);
                 } else {
@@ -142,7 +142,7 @@ public class BaseTeleOp extends BaseController {
                     } else {
                         setMoveDir(rawMoveVector, CoordinateSystem.TARGET_HEADING);
                     }
-
+                    applyTargetHeading();
                 } else { // free movement
                     setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
                     setTargetHeading(localizer.getPoseEstimate().getHeading());

@@ -15,7 +15,7 @@ public abstract class LinearSlide {
     double cappedLength; // in;
     double encoderTicksPerRevolution;
     double encoderTicksInFullLength;
-    private final double encoderTicksPerInch = Math.abs(encoderTicksInFullLength/fullLength);
+    double encoderTicksPerInch;
     private final ElapsedTime runtime = new ElapsedTime();
     private final TargetFollower follower = new TargetFollower(25 * encoderTicksPerInch, 200 * encoderTicksPerInch);
 
@@ -52,6 +52,8 @@ public abstract class LinearSlide {
 
     public void update() {
 
+        encoderTicksPerInch = Math.abs(encoderTicksInFullLength/fullLength);
+
         double deltaTime = runtime.seconds() - lastTime;
         lastTime = runtime.seconds();
 
@@ -60,7 +62,9 @@ public abstract class LinearSlide {
         follower.update(motor.getCurrentPosition(), motor.getVelocity());
 
         double velocityInEncoderTicks = encoderTicksPerInch * follower.getCurrentVelocity();
-        motor.setVelocity(velocityInEncoderTicks/encoderTicksPerRevolution * Math.PI * 2, AngleUnit.RADIANS);
+        //motor.setVelocity(velocityInEncoderTicks/encoderTicksPerRevolution * Math.PI * 2, AngleUnit.RADIANS);
+
+        motor.setTargetPosition((int) (encoderTicksPerInch * targetHeight * -1));
 
     }
 
