@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.util.MoreMath.clamp;
 import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
 import static org.firstinspires.ftc.teamcode.util.MoreMath.modulo;
 
@@ -12,16 +13,15 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 public class CenterStageHardware {
 
-    private final Servo clawShoulder;
-    private final Servo clawElbow;
-    private final Servo clawWrist   ;
-    private final Servo pokerPusher;
-    private final DcMotorEx armRotator;
-    private final Servo pokerRotator;
-    private final DcMotorEx armExtender;
-    private HardwareMap hardwareMap;
-    // 0.85 for down, 0.55 for up
+    private Servo clawShoulder;
+    private Servo clawElbow;
+    private Servo clawWrist;
+    private Servo pokerPusher;
+    private DcMotorEx armRotator;
+    private Servo pokerRotator;
+    private DcMotorEx armExtender;
     private Servo clawOpener;
+    private HardwareMap hardwareMap;
     private int clawPose = 0;
 
     private double[][] clawPoses = new double[][]{
@@ -47,10 +47,10 @@ public class CenterStageHardware {
 
         armExtender.setTargetPosition(0);
         armExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armExtender.setPower(0.25);
+        armExtender.setPower(1);
         armExtender.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        armRotator.setTargetPosition(-500);
+        armRotator.setTargetPosition(500);
         armRotator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armRotator.setPower(1);
         armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -60,19 +60,32 @@ public class CenterStageHardware {
         pokerPusher.setPosition(pos == 1 ? 0.5 : 0.5);
     }
 
+    public void drivePose() {
+        clawPose = 2;
+        armRotator.setTargetPosition(800);
+        pokerRotator.setPosition(0.5);
+    }
+
+    public void prepareForGrab() {
+        clawPose = 1;
+        clawOpen = false;
+        armRotator.setTargetPosition(500);
+        pokerRotator.setPosition(0.5);
+    }
+
     public void prepareForPush() {
-        armRotator.setTargetPosition(-500);
+        armRotator.setTargetPosition(500);
         pokerRotator.setPosition(0.5);
         clawPose = 3;
     }
 
     public void prepareForArmPlace() {
-        armRotator.setTargetPosition(-1000);
+        armRotator.setTargetPosition(1000);
         pokerRotator.setPosition(0.5);
     }
 
     public void prepareForClawPlace() {
-        armRotator.setTargetPosition(-1000);
+        armRotator.setTargetPosition(1000);
         pokerRotator.setPosition(0.5);
         clawPose = 2;
     }

@@ -69,6 +69,9 @@ public class CenterStageTeleOp extends BaseTeleOp {
         if (currentGamepadState.y) {
             gameHardware.prepareForClawPlace();
         }
+        if (currentGamepadState.b) {
+            gameHardware.prepareForGrab();
+        }
     }
 
     public void teleOpInitialize() {
