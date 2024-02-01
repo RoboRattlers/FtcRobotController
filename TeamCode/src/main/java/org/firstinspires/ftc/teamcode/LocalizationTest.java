@@ -61,7 +61,7 @@ public class LocalizationTest extends BaseController {
     public boolean correctionDisabled = true;
     private double freeMoveSpeed = 0.8; // multiplier for strafing speeds in "free movement" mode
     private double freeTurnSpeed = 2; // multiplier for turning speeds in "free movement" mode
-    public static double correctionSpeed = -5.0;
+    public static double correctionSpeed = 5.0;
     public static double maxSpdMult = 4;
     public static double minSpdMult = 0.1;
     public static double maxDist = 8;
