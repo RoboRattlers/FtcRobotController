@@ -43,21 +43,21 @@ public class CenterStageHardware {
         pokerPusher = hardwareMap.get(Servo.class, "PokerPusher"); // control hub servo 0
         pokerRotator = hardwareMap.get(Servo.class, "PokerRotator"); // control hub servo 1
         armRotator = hardwareMap.get(DcMotorEx.class, "ArmRotator"); // expansion hub motor 0
-        armExtender = hardwareMap.get(DcMotorEx.class, "ArmExtender"); // expansion hub motor 1
+        armExtender = hardwareMap.get(DcMotorEx.class,  "ArmExtender"); // expansion hub motor 1
 
         armExtender.setTargetPosition(0);
         armExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armExtender.setPower(1);
         armExtender.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        armRotator.setTargetPosition(500);
+        armRotator.setTargetPosition(0);
         armRotator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armRotator.setPower(1);
         armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
     public void setPokerPusherPos(int pos) {
-        pokerPusher.setPosition(pos == 1 ? 0.5 : 0.5);
+        armRotator.setTargetPosition((1 - pos) * 700 + 100);
     }
 
     public void drivePose() {
@@ -67,21 +67,18 @@ public class CenterStageHardware {
     }
 
     public void prepareForGrab() {
-        clawPose = 1;
+        /*clawPose = 1;
         clawOpen = false;
         armRotator.setTargetPosition(500);
-        pokerRotator.setPosition(0.5);
+        pokerRotator.setPosition(0.5);*/
     }
 
     public void prepareForPush() {
-        armRotator.setTargetPosition(500);
-        pokerRotator.setPosition(0.5);
-        clawPose = 3;
+        armExtender.setTargetPosition(0);
     }
 
     public void prepareForArmPlace() {
-        armRotator.setTargetPosition(1000);
-        pokerRotator.setPosition(0.5);
+        armExtender.setTargetPosition(-1500);
     }
 
     public void prepareForClawPlace() {
@@ -111,10 +108,10 @@ public class CenterStageHardware {
     }
 
     public void defaultPose() {
-        clawPose = 0;
+        /*clawPose = 0;
         updateClawPose();
         clawOpen = false;
-        updateClawOpener();
+        updateClawOpener();*/
     }
 
     public void update() {

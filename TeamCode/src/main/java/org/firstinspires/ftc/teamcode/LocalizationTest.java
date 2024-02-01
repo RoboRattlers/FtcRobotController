@@ -29,18 +29,21 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.normalizeAngle;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.round;
+
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.opencv.core.Size;
 
-@TeleOp(name="Base TeleOp", group="Linear Opmode")
-public class BaseTeleOp extends BaseController {
+@Config
+@TeleOp(name="Me Localization Testr", group="Linear Opmode")
+public class LocalizationTest extends BaseController {
 
     public Gamepad lastGamepadState = new Gamepad();
     public Gamepad currentGamepadState = new Gamepad();
@@ -55,8 +58,13 @@ public class BaseTeleOp extends BaseController {
 
     // movement stuff
     public boolean freeMovement = true;
+    public boolean correctionDisabled = true;
     private double freeMoveSpeed = 0.8; // multiplier for strafing speeds in "free movement" mode
     private double freeTurnSpeed = 2; // multiplier for turning speeds in "free movement" mode
+    public static double correctionSpeed = -5.0;
+    public static double maxSpdMult = 4;
+    public static double minSpdMult = 0.1;
+    public static double maxDist = 8;
 
     public void teleOpStep() {
     }
@@ -73,6 +81,8 @@ public class BaseTeleOp extends BaseController {
 
         waitForStart();
         runtime.reset();
+
+        Vector2d startPosition = drive.getPoseEstimate().vec();
 
         // MAIN LOOP
         while (opModeIsActive()) {
@@ -104,6 +114,10 @@ public class BaseTeleOp extends BaseController {
                 }
                 if (currentGamepadState.a && !lastGamepadState.a) { // alternate movement style
                     freeMovement = !freeMovement;
+                }
+
+                if (currentGamepadState.y && !lastGamepadState.y) { // alternate movement style
+                    correctionDisabled = !correctionDisabled;
                 }
                 if (!freeMovement) {
                     // turning
@@ -137,10 +151,16 @@ public class BaseTeleOp extends BaseController {
                         }
                     }
                     // application
-                    if (rawMoveVector.distTo(new Vector2d(0, 0)) < 0.01) {
-                        setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
+                    if (rawMoveVector.distTo(new Vector2d(0, 0)) < 0.1) {
+                        Vector2d currentPos = drive.getPoseEstimate().vec();
+                        Vector2d delta = startPosition.minus(currentPos);
+                        double distToZero = delta.distTo(new Vector2d(0, 0));
+                        if (distToZero > 0) {
+                            delta = delta.div(distToZero).times(map(distToZero, 0,  maxDist, minSpdMult, maxSpdMult, true));
+                        }
+                        setMoveDir(delta.div(correctionSpeed).times(correctionDisabled ? 0 : Math.signum(correctionSpeed)), CoordinateSystem.WORLD);
                     } else {
-                        setMoveDir(rawMoveVector, CoordinateSystem.TARGET_HEADING);
+                        setMoveDir(rawMoveVector, CoordinateSystem.WORLD);
                     }
                     applyTargetHeading();
                 } else { // free movement

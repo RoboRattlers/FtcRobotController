@@ -35,51 +35,49 @@ import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roadrunner.path.PathBuilder;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryGenerator;
+import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TranslationalVelocityConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.opencv.core.Size;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Autonomous
-public class BadAutoOp extends BaseAutoOp {
+public class TestAutoOp extends BaseAutoOp {
 
-    CenterStagePropDetectionPipeline propDetectionPipeline;
-    CenterStageHardware gameHardware;
     public void autoOpInitialize () {
 
-        propDetectionPipeline = new CenterStagePropDetectionPipeline(new Size(), new double[]{0, 0, 255});
-        gameHardware = new CenterStageHardware(hardwareMap);
-
-        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
-        {
-            @Override
-            public void onOpened()
-            {
-                camera.startStreaming(320,240, OpenCvCameraRotation.UPRIGHT);
-            }
-
-            @Override
-            public void onError(int errorCode)
-            {
-
-            }
-        });
-        camera.setPipeline(propDetectionPipeline);
-
-        AtomicInteger zone = new AtomicInteger(-1);
 
 
         addPhase(() -> {
-            gameHardware.rotateClaw(0);
             Path path = new PathBuilder(new Pose2d(0, 0, 0))
-                    .lineTo(new Vector2d(TILE_SIZE * 2, 0))
+                    .splineTo(new Vector2d(-TILE_SIZE, TILE_SIZE), Math.PI)
+                    .lineTo(new Vector2d(
+                                    -TILE_SIZE * 0.5,
+                                    TILE_SIZE * 1.5
+                            )
+                    )
+                    // split this into two phases?
+                    .lineTo(new Vector2d(0, 0))
+                    .lineTo(new Vector2d(TILE_SIZE * 3, 0))
                     .build();
-            Trajectory traj = TrajectoryGenerator.INSTANCE.generateSimpleTrajectory(path, 10, 100, 1000);
-            drive.followTrajectoryAsync(traj);
+
+            TrajectoryVelocityConstraint velConstraint = new MinVelocityConstraint(Arrays.asList(
+                    new TranslationalVelocityConstraint(20),
+                    new AngularVelocityConstraint(1)
+            ));
+            TrajectoryAccelerationConstraint accelConstraint = new ProfileAccelerationConstraint(40);
+            //Trajectory traj = TrajectoryGenerator.generateTrajectory(path, velConstraint, accelConstraint);
+            //
+            //drive.followTrajectoryAsync(traj);
         }, () -> {
 
         }, () -> !drive.isBusy());

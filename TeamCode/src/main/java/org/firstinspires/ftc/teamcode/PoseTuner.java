@@ -11,46 +11,39 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import java.util.List;
 
-@Config
 @TeleOp
 public class PoseTuner extends LinearOpMode {
 
-    public static String[] ActuatorNames = new String[16];
-    public static double[] ActuatorPositions = new double[16];
+    public static double shoulder = 0.5;
+    public static double elbow = 0.5;
+    public static double wrist = 0.5;
+    public static double claw = 0.5;
 
     @Override
     public void runOpMode() {
 
-        List<DcMotor> motors = hardwareMap.getAll(DcMotor.class);
-        List<Servo> servos = hardwareMap.getAll(Servo.class);
+        DcMotorEx w1 = hardwareMap.get(DcMotorEx.class, "TopRightWheel");
+        DcMotorEx w2 = hardwareMap.get(DcMotorEx.class, "BottomRightWheel");
+        DcMotorEx w3 = hardwareMap.get(DcMotorEx.class, "BottomLeftWheel");
+        DcMotorEx w4 = hardwareMap.get(DcMotorEx.class, "TopLeftWheel");
 
-        int i = 0;
-        for (DcMotor motor : motors) {
-            ActuatorNames[i] = motor.getDeviceName();
-            ActuatorPositions[i] = motor.getCurrentPosition();
-            i++;
-        }
-        for (Servo servo : servos) {
-            ActuatorNames[i] = servo.getDeviceName();
-            ActuatorPositions[i] = 0.5;
-            i++;
-        }
+
+
+        DcMotorEx[] list = new DcMotorEx[]{w1, w2, w3, w4};
+        double[] powers = new double[]{1, 0.5, -0.5, -1};
 
         waitForStart();
 
         while (opModeIsActive()) {
-            int e = 0;
-            for (DcMotor motor : motors) {
-                telemetry.addData(motor.getDeviceName(), motor.getCurrentPosition());
-                motor.setTargetPosition((int) ActuatorPositions[e]);
-                motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                e++;
+
+            for (int i = 0; i < 4; i++) {
+                DcMotorEx motor = list[i];
+                motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                motor.setDirection(DcMotorSimple.Direction.FORWARD);
+                motor.setPower(powers[i]);
             }
-            for (Servo servo : servos) {
-                telemetry.addData(servo.getDeviceName(), servo.getPosition());
-                servo.setPosition(ActuatorPositions[e]);
-                e++;
-            }
+
+            telemetry.addData("w1", w1);
             telemetry.update();
         }
 
