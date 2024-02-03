@@ -30,14 +30,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
-import com.acmerobotics.roadrunner.geometry.Pose2d;
+
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.opencv.core.Size;
 
 @TeleOp(name="Base TeleOp", group="Linear Opmode")
 public class BaseTeleOp extends BaseController {
@@ -46,17 +44,13 @@ public class BaseTeleOp extends BaseController {
     public Gamepad currentGamepadState = new Gamepad();
     public Gamepad lastGamepad2State = new Gamepad();
     public Gamepad currentGamepad2State = new Gamepad();
-    private String CONTROL_STRING = "!!!! MOVEMENT CONTROLS: !!!!"
-            + "\nLeft stick to move/strafe"
-            + "\nBumpers to rotate 90 degrees"
-            + "\nA to enter free movement mode"
-            + "\nRight stick to rotate in free movement mode"
-            + "\nY to calibrate orientation";
+    private String CONTROL_STRING = "";
 
     // movement stuff
-    public boolean freeMovement = true;
-    private double freeMoveSpeed = 0.8; // multiplier for strafing speeds in "free movement" mode
-    private double freeTurnSpeed = 2; // multiplier for turning speeds in "free movement" mode
+    public boolean freeMovement = false;
+    private double slowMoveSpeedMult = 0.4; // multiplier for strafing speeds in "free movement" mode
+    private double turnSpeedMult = 2; // multiplier for turning speeds in "free movement" mode
+    private double slowTurnSpeedMult = 0.75;
 
     public void teleOpStep() {
     }
@@ -67,7 +61,6 @@ public class BaseTeleOp extends BaseController {
     @Override
     public void runOpMode() {
 
-        telemetry.addData("Controls", CONTROL_STRING);
         baseInitialize();
         teleOpInitialize();
 
@@ -82,17 +75,11 @@ public class BaseTeleOp extends BaseController {
             lastGamepad2State.copy(currentGamepad2State);
             currentGamepad2State.copy(gamepad2);
 
-            telemetry.addData("Controls", CONTROL_STRING);
-
             // MOVEMENT HANDLING
             {
                 Vector2d rawMoveVector;
-                double xMoveFactor = -currentGamepadState.left_stick_y
-                        + (currentGamepadState.dpad_right ? 1 : 0)
-                        - (currentGamepadState.dpad_left ? 1 : 0);
-                double yMoveFactor = -currentGamepadState.left_stick_x
-                        + (currentGamepadState.dpad_down ? 1 : 0)
-                        - (currentGamepadState.dpad_up ? 1 : 0);
+                double xMoveFactor = -currentGamepadState.left_stick_y;
+                double yMoveFactor = -currentGamepadState.left_stick_x;
                 if (Math.abs(xMoveFactor) + Math.abs(yMoveFactor) > 0.05) {
                     double magnitude = Math.sqrt(Math.pow(xMoveFactor, 2) + Math.pow(yMoveFactor, 2));
                     magnitude = Math.min(magnitude, 1.0);
@@ -144,14 +131,14 @@ public class BaseTeleOp extends BaseController {
                     }
                     if (Math.abs(currentGamepadState.right_stick_x) > 0.1) {
                         setTargetHeading(localizer.getPoseEstimate().getHeading());
-                        setTurnVelocity(freeTurnSpeed * -currentGamepadState.right_stick_x);
+                        setTurnVelocity(turnSpeedMult * -currentGamepadState.right_stick_x);
                     } else {
                         applyTargetHeading();
                     }
                 } else { // free movement
-                    setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
+                    setMoveDir(rawMoveVector.times(slowMoveSpeedMult), CoordinateSystem.ROBOT);
                     setTargetHeading(localizer.getPoseEstimate().getHeading());
-                    setTurnVelocity(freeTurnSpeed * -currentGamepadState.right_stick_x);
+                    setTurnVelocity(slowTurnSpeedMult * -currentGamepadState.right_stick_x);
                 }
             }
 

@@ -37,7 +37,6 @@ public class CenterStageTeleOp extends BaseTeleOp {
     private CenterStageHardware gameHardware;
 
     public void teleOpStep() {
-        gameHardware.update();
         if (currentGamepadState.x && !lastGamepadState.x) {
             gameHardware.toggleClawOpen();
         }
@@ -48,26 +47,30 @@ public class CenterStageTeleOp extends BaseTeleOp {
             gameHardware.incrementClawPose(-1);
         }
         if (currentGamepadState.dpad_up) {
-            gameHardware.prepareForArmPlace();
+            gameHardware.prepareForPokerAdd();
         }
         if (currentGamepadState.dpad_down) {
-            gameHardware.prepareForPush();
-        }
-        if (currentGamepadState.right_trigger > 0.5) {
-            gameHardware.setArmRotation(0);
+            gameHardware.setClawOpen(true);
+            gameHardware.prepareForPixelGrab();
         }
         if (currentGamepadState.left_trigger > 0.5) {
-            gameHardware.setArmRotation(1);
+            gameHardware.prepareForArmPlace();
         }
-        if (currentGamepadState.y) {
-            gameHardware.prepareForClawPlace();
+        if (currentGamepadState.right_stick_button) {
+            gameHardware.incrementPusherPos(1);
         }
+        if (currentGamepadState.left_stick_button) {
+            if (!gameHardware.isGrabbingTruss()) {
+                gameHardware.prepareForTrussGrab();
+            } else {
+                gameHardware.trussGrab();
+            }
+        }
+
         if (currentGamepadState.guide) {
             gameHardware.drivePose();
         }
-        if (currentGamepadState.b) {
-            gameHardware.prepareForGrab();
-        }
+        gameHardware.update();
     }
 
     public void teleOpInitialize() {

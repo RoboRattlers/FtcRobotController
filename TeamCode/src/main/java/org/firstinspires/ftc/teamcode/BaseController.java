@@ -29,8 +29,6 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ACCEL;
-import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_VEL;
 import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -38,29 +36,16 @@ import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.localization.Localizer;
-import com.acmerobotics.roadrunner.util.Angle;
-import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
-import org.firstinspires.ftc.teamcode.drive.StandardTrackingWheelLocalizer;
-import org.openftc.easyopencv.OpenCvCamera;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Target;
 
 enum CoordinateSystem {
     ROBOT,
@@ -78,10 +63,9 @@ public class BaseController extends LinearOpMode {
     public static double DRIVE_ACCEL = 8;
     public static double DRIVE_VEL_SMOOTHING_THRESHOLD = 0.1;
     public ElapsedTime runtime = new ElapsedTime();
-    public double encoderTicksPerRevolution = 537.7;
 
-    public final double IN_TO_MM = 25.4;
-    public final double FIELD_SIZE = 141.345 * IN_TO_MM;
+    public final double MM_TO_IN = 1/25.4;
+    public final double FIELD_SIZE = 141.345;
     public final double TILE_SIZE = FIELD_SIZE/6.0;
 
     // movement stuff
@@ -90,11 +74,11 @@ public class BaseController extends LinearOpMode {
     private double targetHeading = 0;
     private double turnVelocity = 0;
     private Vector2d moveDir = new Vector2d();
-    private double rotationDampeningThreshold = Math.toRadians(45);
-    private double rotationPower = 0.9;
-    private TargetFollower xMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
-    private TargetFollower yMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
-    private TargetFollower turnVelFollower = new TargetFollower(DRIVE_TURN_ACCEL, DRIVE_TURN_JERK, DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
+    private final double ROTATION_DAMPENING_THRESHOLD = Math.toRadians(45);
+    private final double ROTATION_POWER = 0.9;
+    private final TargetFollower xMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
+    private final TargetFollower yMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
+    private final TargetFollower turnVelFollower = new TargetFollower(DRIVE_TURN_ACCEL, DRIVE_TURN_JERK, DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
 
     // rotation stuff
     public final double RIGHT_ANGLE = Math.PI/2.0;
@@ -105,7 +89,7 @@ public class BaseController extends LinearOpMode {
     public void applyTargetHeading() {
         double turnDiff = normalizeAngle(targetHeading - localizer.getPoseEstimate().getHeading(), AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);
-        double tvel = Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower;
+        double tvel = Math.max(Math.min(turnDiff, ROTATION_DAMPENING_THRESHOLD), -ROTATION_DAMPENING_THRESHOLD)/ ROTATION_DAMPENING_THRESHOLD * ROTATION_POWER;
         if (Math.abs(tvel) > 0.02) {
             turnVelocity = tvel;
         } else {

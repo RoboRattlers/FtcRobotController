@@ -29,39 +29,58 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.util.MoreMath.normalizeAngle;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
 
-import com.acmerobotics.roadrunner.drive.DriveSignal;
-import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.localization.Localizer;
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.ReadWriteFile;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
 
 @TeleOp
-public class ResetAllEncoders extends LinearOpMode {
+@Config
+
+public class PokerAddTuner extends LinearOpMode {
+
+    public static double shoulder_start_pos = 0.62;
+    public static double shoulder_end_pos = 0.8;
+    public static double elbow_start_pos = 0.4;
+    public static double elbow_end_pos = 0.5;
+    public static double wrist_start_pos = 0.7;
+    public static double wrist_end_pos = 0.6;
+    public static double arm_extender_pos = -300;
+    public static double poker_rotator_pos = 1;
 
     @Override
     public void runOpMode() {
-        List<DcMotor> motors = hardwareMap.getAll(DcMotor.class);
 
+        Servo clawShoulder = hardwareMap.get(Servo.class, "ClawShoulder");
+        Servo clawElbow = hardwareMap.get(Servo.class, "ClawElbow");
+        Servo clawWrist = hardwareMap.get(Servo.class, "ClawWrist");
+        Servo pokerRotator = hardwareMap.get(Servo.class, "PokerRotator");
+        DcMotorEx armExtender = hardwareMap.get(DcMotorEx.class, "ArmExtender");
         waitForStart();
 
-        for (DcMotor motor : motors) {
-            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
+        ElapsedTime runtime = new ElapsedTime();
 
+        armExtender.setTargetPosition(0);
+        armExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armExtender.setPower(1);
+        armExtender.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        while (opModeIsActive()) {
+
+            double pos = Math.sin(runtime.seconds() * 0.5);
+
+            clawShoulder.setPosition(map(pos, -1, 1, shoulder_start_pos, shoulder_end_pos, true));
+            clawWrist.setPosition(map(pos, -1, 1, wrist_start_pos, wrist_end_pos, true));
+            clawElbow.setPosition(map(pos, -1, 1, elbow_start_pos, elbow_end_pos, true));
+            pokerRotator.setPosition(poker_rotator_pos);
+            armExtender.setTargetPosition((int) arm_extender_pos);
+
+            telemetry.update();
+        }
     }
 }
