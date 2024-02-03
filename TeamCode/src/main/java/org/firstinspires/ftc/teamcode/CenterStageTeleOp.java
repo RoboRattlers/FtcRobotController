@@ -56,10 +56,10 @@ public class CenterStageTeleOp extends BaseTeleOp {
         if (currentGamepadState.left_trigger > 0.5) {
             gameHardware.prepareForArmPlace();
         }
-        if (currentGamepadState.right_stick_button) {
+        if (currentGamepadState.right_stick_button && !lastGamepadState.right_stick_button) {
             gameHardware.incrementPusherPos(1);
         }
-        if (currentGamepadState.left_stick_button) {
+        if (currentGamepadState.left_stick_button && !lastGamepadState.left_stick_button) {
             if (!gameHardware.isGrabbingTruss()) {
                 gameHardware.prepareForTrussGrab();
             } else {

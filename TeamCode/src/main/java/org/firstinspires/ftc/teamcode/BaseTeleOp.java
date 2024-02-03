@@ -127,15 +127,15 @@ public class BaseTeleOp extends BaseController {
                     if (rawMoveVector.distTo(new Vector2d(0, 0)) < 0.01) {
                         setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
                     } else {
-                        setMoveDir(rawMoveVector, CoordinateSystem.TARGET_HEADING);
+                        setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
                     }
-                    if (Math.abs(currentGamepadState.right_stick_x) > 0.1) {
+                    if (Math.abs(currentGamepadState.right_stick_x) > -1) {
                         setTargetHeading(localizer.getPoseEstimate().getHeading());
                         setTurnVelocity(turnSpeedMult * -currentGamepadState.right_stick_x);
                     } else {
-                        applyTargetHeading();
+                        //applyTargetHeading();
                     }
-                } else { // free movement
+                } else { // slow movement
                     setMoveDir(rawMoveVector.times(slowMoveSpeedMult), CoordinateSystem.ROBOT);
                     setTargetHeading(localizer.getPoseEstimate().getHeading());
                     setTurnVelocity(slowTurnSpeedMult * -currentGamepadState.right_stick_x);

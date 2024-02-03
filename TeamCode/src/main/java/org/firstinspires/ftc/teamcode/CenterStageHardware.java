@@ -37,14 +37,16 @@ public class CenterStageHardware {
     public static double POKER_ADD_POKER_ROTATOR_POS = 0.8;
     public static double ARM_UP_ENCODER_POS = 800;
     public static double ARM_PLACEMENT_POS = 1.2;
-    private double[] pusherPositions = new double[]{0.265, 0.2, 0.16};
+    private double[] pusherPositions = new double[]{0.2, 0.135, 0.1};
     private int pusherPos = 0;
 
     private double[][] clawPoses = new double[][]{
-            new double[]{0.62, 0.5, 0.8}, // initialization/drive
-            new double[]{0.62, 0.725, 0.27}, // grab
+            new double[]{0.62, 0.5, 0.5}, // drive
+            new double[]{0.6, 0.9, 0.3}, // grab
             new double[]{0.62, 0.4, 0.6}, // pre-push onto poker
-            new double[]{0.8, 0.4, 0.6} // push onto poker
+            new double[]{0.8, 0.4, 0.6}, // push onto poker
+            new double[]{0.8, 0.375, 0.5}, // HELP I HAVE TO GRAB?
+            new double[]{0.62, 0.375, 0.35} // init
     };
 
     private boolean clawOpen = false;
@@ -117,21 +119,24 @@ public class CenterStageHardware {
 
     public void trussGrab() {
         grabbingTruss = true;
-        pokerRotator.setPosition(0.5);
+        //pokerRotator.setPosition(0.5);
         clawPose = 0;
-        armExtenderFollower.setTargetPosition(1);
+        armExtenderFollower.setTargetPosition(1.85);
+        //armRotatorFollower.setTargetPosition(0.55);
     }
 
     public void prepareForTrussGrab() {
         grabbingTruss = true;
-        pokerRotator.setPosition(0.5);
+        //pokerRotator.setPosition(0.5);
         clawPose = 0;
-        armExtenderFollower.setTargetPosition(2.5);
+        armExtenderFollower.setTargetPosition(3.5);
+        armRotatorFollower.setTargetPosition(0.8);
     }
 
 
     public void prepareForArmPlace() {
-        armExtenderFollower.setTargetPosition(0);
+        armExtenderFollower.setTargetPosition(2);
+        pokerRotator.setPosition(0.1);
         armRotatorFollower.setTargetPosition(ARM_PLACEMENT_POS);
     }
 
@@ -148,8 +153,8 @@ public class CenterStageHardware {
         clawElbowFollower.update();
         clawWristFollower.update();
         clawShoulderFollower.setTargetPosition(currentClawPose[0]);
-        clawWristFollower.setTargetPosition(currentClawPose[1]);
-        clawElbowFollower.setTargetPosition(currentClawPose[2]);
+        clawElbowFollower.setTargetPosition(currentClawPose[1]);
+        clawWristFollower.setTargetPosition(currentClawPose[2]);
         clawShoulder.setPosition(clawShoulderFollower.getTargetPosition());
         clawElbow.setPosition(clawElbowFollower.getTargetPosition());
         clawWrist.setPosition(clawWristFollower.getTargetPosition());
@@ -158,6 +163,10 @@ public class CenterStageHardware {
     public void defaultPose() {
         clawOpen = false;
         drivePose();
+        armRotator.setTargetPosition(500);
+        pokerRotator.setPosition(0.1);
+        armRotatorFollower.setTargetPosition(0.5);
+        clawPose = 5;
         updateClawPose();
         updateClawOpener();
     }
