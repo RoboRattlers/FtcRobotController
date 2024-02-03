@@ -87,14 +87,14 @@ public class BaseTeleOp extends BaseController {
             // MOVEMENT HANDLING
             {
                 Vector2d rawMoveVector;
-                double xMoveFactor = currentGamepadState.left_stick_y
+                double xMoveFactor = -currentGamepadState.left_stick_y
                         + (currentGamepadState.dpad_right ? 1 : 0)
                         - (currentGamepadState.dpad_left ? 1 : 0);
-                double yMoveFactor = currentGamepadState.left_stick_x
+                double yMoveFactor = -currentGamepadState.left_stick_x
                         + (currentGamepadState.dpad_down ? 1 : 0)
                         - (currentGamepadState.dpad_up ? 1 : 0);
                 if (Math.abs(xMoveFactor) + Math.abs(yMoveFactor) > 0.05) {
-                    double magnitude = Math.sqrt(Math.pow(currentGamepadState.left_stick_y, 2) + Math.pow(currentGamepadState.left_stick_x, 2));
+                    double magnitude = Math.sqrt(Math.pow(xMoveFactor, 2) + Math.pow(yMoveFactor, 2));
                     magnitude = Math.min(magnitude, 1.0);
                     double angle = Math.atan2(yMoveFactor, xMoveFactor);
                     double newAngle = round(angle, RIGHT_ANGLE/2.0);
@@ -142,7 +142,12 @@ public class BaseTeleOp extends BaseController {
                     } else {
                         setMoveDir(rawMoveVector, CoordinateSystem.TARGET_HEADING);
                     }
-                    applyTargetHeading();
+                    if (Math.abs(currentGamepadState.right_stick_x) > 0.1) {
+                        setTargetHeading(localizer.getPoseEstimate().getHeading());
+                        setTurnVelocity(freeTurnSpeed * -currentGamepadState.right_stick_x);
+                    } else {
+                        applyTargetHeading();
+                    }
                 } else { // free movement
                     setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
                     setTargetHeading(localizer.getPoseEstimate().getHeading());
