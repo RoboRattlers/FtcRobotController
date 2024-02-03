@@ -9,6 +9,9 @@ public class MoreMath {
     }
 
     public static double map(double num, double oldMin, double oldMax, double newMin, double newMax, boolean clamp) {
+        if (oldMin == oldMax || newMin == newMax) {
+            return newMin;
+        }
         double newValue = (num - oldMin)/(oldMax - oldMin) * (newMax - newMin) + newMin;
         if (clamp) {
             newValue = clamp(newValue, newMin, newMax);
@@ -20,6 +23,10 @@ public class MoreMath {
         double max2 = Math.max(min, max);
         double min2 = Math.min(min, max);
         return Math.min(Math.max(num, min2), max2);
+    }
+
+    public static double clampMagnitude(double num, double mag) {
+        return clamp(num, -Math.abs(mag), Math.abs(mag));
     }
 
     public static double normalizeAngle(double angle, AngleUnit angleUnit) {

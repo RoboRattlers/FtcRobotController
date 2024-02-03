@@ -17,7 +17,7 @@ public abstract class LinearSlide {
     double encoderTicksInFullLength;
     double encoderTicksPerInch;
     private final ElapsedTime runtime = new ElapsedTime();
-    private final TargetFollower follower = new TargetFollower(25 * encoderTicksPerInch, 200 * encoderTicksPerInch);
+    private final TargetFollower follower = new TargetFollower(25 * encoderTicksPerInch, 200 * encoderTicksPerInch, 50);
 
     double maxVelocity = 25; // in/sec
     double acceleration = maxVelocity/0.2; // in/sec^2
@@ -58,7 +58,7 @@ public abstract class LinearSlide {
         lastTime = runtime.seconds();
 
         targetHeight = clamp(targetHeight, 0, cappedLength);
-        follower.targetPosition = targetHeight/fullLength * encoderTicksInFullLength;
+        follower.setTargetPosition(targetHeight/fullLength * encoderTicksInFullLength);
         follower.update(motor.getCurrentPosition(), motor.getVelocity());
 
         double velocityInEncoderTicks = encoderTicksPerInch * follower.getCurrentVelocity();

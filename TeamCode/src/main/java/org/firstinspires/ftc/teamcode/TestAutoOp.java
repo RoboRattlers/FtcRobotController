@@ -55,32 +55,35 @@ public class TestAutoOp extends BaseAutoOp {
 
     public void autoOpInitialize () {
 
+        /*TrajectoryGenerator trajGen = new TrajectoryGenerator();
 
+        Path path = new PathBuilder(new Pose2d(0, 0, 0))
+                .splineTo(new Vector2d(-TILE_SIZE, TILE_SIZE), Math.PI)
+                .lineTo(new Vector2d(
+                                -TILE_SIZE * 0.5,
+                                TILE_SIZE * 1.5
+                        )
+                )
+                // split this into two phases?
+                .lineTo(new Vector2d(0, 0))
+                .lineTo(new Vector2d(TILE_SIZE * 3, 0))
+                .build();
 
+        TrajectoryVelocityConstraint velConstraint = new MinVelocityConstraint(Arrays.asList(
+                new TranslationalVelocityConstraint(20),
+                new AngularVelocityConstraint(1)
+        ));
+        TrajectoryAccelerationConstraint accelConstraint = new ProfileAccelerationConstraint(40);*/
+        Trajectory traj = drive.trajectoryBuilder(new Pose2d())
+                .splineTo(new Vector2d(30, 30), 0)
+                .build();
         addPhase(() -> {
-            Path path = new PathBuilder(new Pose2d(0, 0, 0))
-                    .splineTo(new Vector2d(-TILE_SIZE, TILE_SIZE), Math.PI)
-                    .lineTo(new Vector2d(
-                                    -TILE_SIZE * 0.5,
-                                    TILE_SIZE * 1.5
-                            )
-                    )
-                    // split this into two phases?
-                    .lineTo(new Vector2d(0, 0))
-                    .lineTo(new Vector2d(TILE_SIZE * 3, 0))
-                    .build();
 
-            TrajectoryVelocityConstraint velConstraint = new MinVelocityConstraint(Arrays.asList(
-                    new TranslationalVelocityConstraint(20),
-                    new AngularVelocityConstraint(1)
-            ));
-            TrajectoryAccelerationConstraint accelConstraint = new ProfileAccelerationConstraint(40);
-            //Trajectory traj = TrajectoryGenerator.generateTrajectory(path, velConstraint, accelConstraint);
             //
-            //drive.followTrajectoryAsync(traj);
+            drive.followTrajectoryAsync(traj);
         }, () -> {
-
-        }, () -> !drive.isBusy());
+            telemetry.addData("Hello chat", ":)");
+        }, () -> false);
 
     }
 

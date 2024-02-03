@@ -29,7 +29,9 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
@@ -105,12 +107,25 @@ public class BaseAutoOp extends BaseController {
 
         baseInitialize();
         this.autoOpInitialize();
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        /*int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
-        telemetry.addData("Camera", camera);
+        telemetry.addData("Camera", camera);*/
 
         waitForStart();
         runtime.reset();
+
+        Trajectory traj = drive.trajectoryBuilder(new Pose2d())
+                .splineTo(new Vector2d(-TILE_SIZE, TILE_SIZE), Math.PI)
+                .splineTo(new Vector2d(
+                                -TILE_SIZE * 0.5,
+                                TILE_SIZE * 1.5
+                        ), Math.PI
+                )
+                // split this into two phases?
+                .splineTo(new Vector2d(0, 0), Math.PI)
+                .splineTo(new Vector2d(TILE_SIZE * 3, 0), Math.PI)
+                .build();
+
 
         // MAIN LOOP
         while (opModeIsActive()) {
@@ -119,7 +134,7 @@ public class BaseAutoOp extends BaseController {
             Phase phaseFunc = phases.get(phase);
             telemetry.addData("Phase", phaseFunc);
 
-            setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
+            //setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
             phaseFunc.Step.run();
             telemetry.addData("go?", phaseFunc.Check.get());
             if (phaseFunc.Check.get() && phases.size() > phase + 1) {

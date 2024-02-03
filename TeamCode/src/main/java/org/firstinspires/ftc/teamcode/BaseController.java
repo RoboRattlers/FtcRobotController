@@ -29,8 +29,11 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ACCEL;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_VEL;
 import static org.firstinspires.ftc.teamcode.util.MoreMath.*;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -57,6 +60,7 @@ import org.openftc.easyopencv.OpenCvCamera;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Target;
 
 enum CoordinateSystem {
     ROBOT,
@@ -64,8 +68,15 @@ enum CoordinateSystem {
     TARGET_HEADING
 }
 
+@Config
 public class BaseController extends LinearOpMode {
 
+    public static double DRIVE_TURN_ACCEL = 5.75;
+    public static double DRIVE_TURN_JERK = 100;
+    public static double DRIVE_TURN_VEL_SMOOTHING_THRESHOLD = 1;
+    public static double DRIVE_JERK = 100;
+    public static double DRIVE_ACCEL = 8;
+    public static double DRIVE_VEL_SMOOTHING_THRESHOLD = 0.1;
     public ElapsedTime runtime = new ElapsedTime();
     public double encoderTicksPerRevolution = 537.7;
 
@@ -76,11 +87,14 @@ public class BaseController extends LinearOpMode {
     // movement stuff
     public SampleMecanumDrive drive;
     public Localizer localizer;
-    private double targetHeading;
-    private double turnVelocity;
-    private Vector2d moveDir;
+    private double targetHeading = 0;
+    private double turnVelocity = 0;
+    private Vector2d moveDir = new Vector2d();
     private double rotationDampeningThreshold = Math.toRadians(45);
     private double rotationPower = 0.9;
+    private TargetFollower xMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
+    private TargetFollower yMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
+    private TargetFollower turnVelFollower = new TargetFollower(DRIVE_TURN_ACCEL, DRIVE_TURN_JERK, DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
 
     // rotation stuff
     public final double RIGHT_ANGLE = Math.PI/2.0;
@@ -93,7 +107,7 @@ public class BaseController extends LinearOpMode {
         telemetry.addData("turn diff", turnDiff);
         double tvel = Math.max(Math.min(turnDiff, rotationDampeningThreshold), -rotationDampeningThreshold)/rotationDampeningThreshold * rotationPower;
         if (Math.abs(tvel) > 0.02) {
-            turnVelocity = tvel * 3.25;
+            turnVelocity = tvel;
         } else {
             turnVelocity = 0;
         }
@@ -129,7 +143,7 @@ public class BaseController extends LinearOpMode {
             transformedHeading = rawHeading;
         }
 
-        moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()) * 50);
+        moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()));
 
     }
     public void baseInitialize() {
@@ -165,11 +179,37 @@ public class BaseController extends LinearOpMode {
 
         // OTHER TELEMETRY AND POST-CALCULATION STUFF
         {
-            drive.updatePoseEstimate();
-            drive.setDriveSignal(new DriveSignal(new Pose2d(moveDir, turnVelocity)));
+            xMoveDirFollower.setTargetPosition(moveDir.getX());
+            yMoveDirFollower.setTargetPosition(moveDir.getY());
+            turnVelFollower.setTargetPosition(turnVelocity);
+            xMoveDirFollower.update();
+            yMoveDirFollower.update();
+            turnVelFollower.update();
+            xMoveDirFollower.setMaxAcceleration(DRIVE_JERK);
+            xMoveDirFollower.setMaxVelocity(DRIVE_ACCEL);
+            xMoveDirFollower.setVelocityDampeningThreshold(DRIVE_VEL_SMOOTHING_THRESHOLD);
+            yMoveDirFollower.setMaxAcceleration(DRIVE_JERK);
+            yMoveDirFollower.setMaxVelocity(DRIVE_ACCEL);
+            yMoveDirFollower.setVelocityDampeningThreshold(DRIVE_VEL_SMOOTHING_THRESHOLD);
+            turnVelFollower.setVelocityDampeningThreshold(DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
+            turnVelFollower.setMaxVelocity(DRIVE_TURN_ACCEL);
+            turnVelFollower.setMaxAcceleration(DRIVE_TURN_JERK);
+            if (!drive.isBusy()) {
+                drive.setDriveSignal(new DriveSignal(
+                        new Pose2d(
+                                xMoveDirFollower.getCurrentPosition() * 50,
+                                yMoveDirFollower.getCurrentPosition() * 50,
+                                turnVelocity * 3.25
+                        )
+                ));
+            }
+            drive.update();
             telemetry.addData("Run Time", runtime.toString());
             telemetry.addData("Local Movement Vector", moveDir);
             //telemetry.addData("Local Displacement from Motor Encoders", displacement);
+            Vector2d displacement = localizer.getPoseEstimate().vec();
+            telemetry.addData("X Displacement (Inches)", displacement.getX());
+            telemetry.addData("Y Displacement (Inches)", displacement.getY());
             telemetry.addData("Heading", Math.toDegrees(localizer.getPoseEstimate().getHeading()));
             telemetry.addData("Target Heading", Math.toDegrees(targetHeading));
         }

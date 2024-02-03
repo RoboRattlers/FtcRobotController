@@ -29,14 +29,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.util.MoreMath.normalizeAngle;
-import static org.firstinspires.ftc.teamcode.util.MoreMath.round;
-
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.Gamepad;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp(name="CenterStage TeleOp", group="Linear Opmode")
 public class CenterStageTeleOp extends BaseTeleOp {
@@ -61,13 +54,16 @@ public class CenterStageTeleOp extends BaseTeleOp {
             gameHardware.prepareForPush();
         }
         if (currentGamepadState.right_trigger > 0.5) {
-            gameHardware.setPokerPusherPos(1);
+            gameHardware.setArmRotation(0);
         }
         if (currentGamepadState.left_trigger > 0.5) {
-            gameHardware.setPokerPusherPos(0);
+            gameHardware.setArmRotation(1);
         }
         if (currentGamepadState.y) {
             gameHardware.prepareForClawPlace();
+        }
+        if (currentGamepadState.guide) {
+            gameHardware.drivePose();
         }
         if (currentGamepadState.b) {
             gameHardware.prepareForGrab();
