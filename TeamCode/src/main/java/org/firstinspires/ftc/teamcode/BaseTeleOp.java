@@ -46,8 +46,10 @@ public class BaseTeleOp extends BaseController {
     public Gamepad currentGamepad2State = new Gamepad();
     private String CONTROL_STRING = "";
 
+    public boolean useBaseTeleOpMovement = true;
+
     // movement stuff
-    public boolean freeMovement = false;
+    public boolean slowMovement = false;
     private double slowMoveSpeedMult = 0.4; // multiplier for strafing speeds in "free movement" mode
     private double turnSpeedMult = 2; // multiplier for turning speeds in "free movement" mode
     private double slowTurnSpeedMult = 0.75;
@@ -76,7 +78,7 @@ public class BaseTeleOp extends BaseController {
             currentGamepad2State.copy(gamepad2);
 
             // MOVEMENT HANDLING
-            {
+            if (useBaseTeleOpMovement) {
                 Vector2d rawMoveVector;
                 double xMoveFactor = -currentGamepadState.left_stick_y;
                 double yMoveFactor = -currentGamepadState.left_stick_x;
@@ -89,10 +91,7 @@ public class BaseTeleOp extends BaseController {
                 } else {
                     rawMoveVector = new Vector2d();
                 }
-                if (currentGamepadState.a && !lastGamepadState.a) { // alternate movement style
-                    freeMovement = !freeMovement;
-                }
-                if (!freeMovement) {
+                if (!slowMovement) {
                     // turning
                     double targetHeading = getTargetHeading();
                     double nearestRightAngle = round(targetHeading, RIGHT_ANGLE);

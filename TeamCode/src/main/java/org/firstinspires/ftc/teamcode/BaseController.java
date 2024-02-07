@@ -86,6 +86,8 @@ public class BaseController extends LinearOpMode {
     private double lastTick = 0.0;
     public double deltaTime = 0.0;
 
+    public boolean useSmoothMovement = true;
+
     public void applyTargetHeading() {
         double turnDiff = normalizeAngle(targetHeading - localizer.getPoseEstimate().getHeading(), AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);
@@ -180,11 +182,12 @@ public class BaseController extends LinearOpMode {
             turnVelFollower.setMaxAcceleration(DRIVE_TURN_JERK);
             if (!drive.isBusy()) {
                 drive.setDriveSignal(new DriveSignal(
-                        new Pose2d(
+                        useSmoothMovement ? new Pose2d(
                                 xMoveDirFollower.getCurrentPosition() * 50,
                                 yMoveDirFollower.getCurrentPosition() * 50,
                                 turnVelocity * 3.25
                         )
+                                : new Pose2d(moveDir, turnVelocity * 3.25)
                 ));
             }
             drive.update();

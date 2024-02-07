@@ -51,7 +51,10 @@ public class PokerAddTuner extends LinearOpMode {
     public static double wrist_start_pos = 0.7;
     public static double wrist_end_pos = 0.6;
     public static double arm_extender_pos = -300;
-    public static double poker_rotator_pos = 1;
+    public static double arm_rotator_pos = 600;
+    public static double poker_rotator_pos = 0.5;
+    public static double oscillation_speed_mult = 3;
+    public static boolean clawOpen = true;
 
     @Override
     public void runOpMode() {
@@ -59,11 +62,19 @@ public class PokerAddTuner extends LinearOpMode {
         Servo clawShoulder = hardwareMap.get(Servo.class, "ClawShoulder");
         Servo clawElbow = hardwareMap.get(Servo.class, "ClawElbow");
         Servo clawWrist = hardwareMap.get(Servo.class, "ClawWrist");
+        Servo clawOpener = hardwareMap.get(Servo.class, "ClawOpener");
         Servo pokerRotator = hardwareMap.get(Servo.class, "PokerRotator");
         DcMotorEx armExtender = hardwareMap.get(DcMotorEx.class, "ArmExtender");
         waitForStart();
 
         ElapsedTime runtime = new ElapsedTime();
+
+        DcMotorEx armRotator = hardwareMap.get(DcMotorEx.class, "ArmRotator"); // expansion hub motor 0
+
+        armRotator.setTargetPosition(300);
+        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        armRotator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armRotator.setPower(0.1);
 
         armExtender.setTargetPosition(0);
         armExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -72,13 +83,15 @@ public class PokerAddTuner extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            double pos = Math.sin(runtime.seconds() * 0.5);
+            double pos = Math.sin(runtime.seconds() * oscillation_speed_mult);
 
             clawShoulder.setPosition(map(pos, -1, 1, shoulder_start_pos, shoulder_end_pos, true));
             clawWrist.setPosition(map(pos, -1, 1, wrist_start_pos, wrist_end_pos, true));
             clawElbow.setPosition(map(pos, -1, 1, elbow_start_pos, elbow_end_pos, true));
+            clawOpener.setPosition(clawOpen ? 0.6 : 0.45);
             pokerRotator.setPosition(poker_rotator_pos);
             armExtender.setTargetPosition((int) arm_extender_pos);
+            armRotator.setTargetPosition((int) arm_rotator_pos);
 
             telemetry.update();
         }

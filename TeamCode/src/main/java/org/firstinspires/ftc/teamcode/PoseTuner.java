@@ -42,9 +42,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class PoseTuner extends LinearOpMode {
 
 
-    public static double pusher_pos = 0.3;
-    public static double pokerRotator_pos = 0.3;
-    public static double armRotator_pos = 0;
+    public static double pusher_pos = 0.2;
+    public static double pokerRotator_pos = 0.5;
+    public static double armRotator_pos = 300;
     public static double armExtender_pos = 0;
     public static double shoulder_pos = 0.5;
     public static double wrist_pos = 0.5;
