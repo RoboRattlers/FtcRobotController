@@ -29,34 +29,20 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
-
-import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.opencv.core.Size;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Supplier;
 
-class Phase {
-
-    public Runnable Init;
-    public Runnable Step;
-    public Supplier<Boolean> Check;
-
-    public Phase(Runnable initFunc, Runnable stepFunc, Supplier<Boolean> checkFunc) {
-        Init = initFunc;
-        Step = stepFunc;
-        Check = checkFunc;
-    }
-
-}
-
-public class BaseAutoOp extends BaseController {
+@TeleOp
+public class CenterStagePropDetectionTest extends BaseController {
 
     private int phase = 0;
     protected double phaseStartTime = 0;
@@ -83,7 +69,6 @@ public class BaseAutoOp extends BaseController {
     private void goToPhaseNum(int phaseNum) {
         phaseEndReached = true;
         phaseStartTime = runtime.seconds();
-        timeInPhase = 0;
         phase = phaseNum;
         try {
             phases.get(phase).Init.run();
@@ -103,78 +88,41 @@ public class BaseAutoOp extends BaseController {
     public void autoOpInitialize () {
     }
 
-    public Pose2d gridToFieldPose(Pose2d pose) {
-        return new Pose2d(
-                map(pose.vec().getX(), -0.5, 5.5, -FIELD_SIZE/2, FIELD_SIZE/2, false),
-                map(pose.vec().getY(), -0.5, 5.5, -FIELD_SIZE/2, FIELD_SIZE/2, false),
-                pose.getHeading()
-        );
-    }
-
-    public Pose2d gridToFieldPose(double x, double y, double heading) {
-        return new Pose2d(gridToFieldVec(x, y), heading);
-    }
-
-    public Vector2d gridToFieldVec(double x, double y) {
-        return new Vector2d(
-                map(x, -0.5, 5.5, -FIELD_SIZE/2, FIELD_SIZE/2, false),
-                map(y, -0.5, 5.5, -FIELD_SIZE/2, FIELD_SIZE/2, false)
-        );
-    }
-
-    public Pose2d localAdd(Pose2d pose1, Pose2d pose2) {
-        Vector2d rotatedPose2Vec = pose2.vec().rotated(pose1.getHeading());
-        return new Pose2d(
-                pose1.getX() + rotatedPose2Vec.getX(),
-                pose1.getY() + rotatedPose2Vec.getY(),
-                pose1.getHeading() + pose2.getHeading()
-        );
-    }
-
-
     // dist: 62.5 inches
     @Override
     public void runOpMode() {
 
         baseInitialize();
+        this.autoOpInitialize();
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         telemetry.addData("Camera", camera);
-        this.autoOpInitialize();
 
         waitForStart();
         runtime.reset();
-        phases.get(phase).Init.run();
-        boolean streaming = true;
+        CenterStagePropDetectionPipeline propDetectionPipeline = new CenterStagePropDetectionPipeline(new Size( (int) (240 * 16/9), 240), new double[]{255, 0, 0});
+
+        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
+        {
+            @Override
+            public void onOpened()
+            {
+                camera.startStreaming(1280,720, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode)
+            {
+
+            }
+        });
+        camera.setPipeline(propDetectionPipeline);
         // MAIN LOOP
         while (opModeIsActive()) {
+            telemetry.addData("Zone", propDetectionPipeline.avgColor1);
 
-            if (isStopRequested()) return;
-            if (runtime.seconds() > 5 && streaming) {
-                camera.stopStreaming();
-                camera.closeCameraDevice();
-                streaming = false;
-            }
+            telemetry.update();
 
-            timeInPhase = runtime.seconds() - phaseStartTime;
-            baseUpdate();
-            Phase phaseFunc = phases.get(phase);
-            telemetry.addData("Phase", phaseFunc);
-
-            //setMoveDir(new Vector2d(), CoordinateSystem.WORLD);
-            phaseFunc.Step.run();
-            telemetry.addData("go?", phaseFunc.Check.get());
-            if (phaseFunc.Check.get() && phases.size() > phase + 1) {
-                goToPhaseNum(phase + 1);
-            }
-
-            telemetry.addData("Go To Next Phase?", goToNextPhase);
-            telemetry.addData("Phase End Reached?", phaseEndReached);
-            telemetry.addData("Phase End Reached Time", phaseEndReachedTime);
-            // OTHER TELEMETRY AND POST-CALCULATION STUFF
-            {
-                telemetry.update();
-            }
         }
     }
 }

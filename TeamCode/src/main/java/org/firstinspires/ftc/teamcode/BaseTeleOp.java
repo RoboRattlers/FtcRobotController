@@ -51,8 +51,8 @@ public class BaseTeleOp extends BaseController {
     // movement stuff
     public boolean slowMovement = false;
     private double slowMoveSpeedMult = 0.4; // multiplier for strafing speeds in "free movement" mode
-    private double turnSpeedMult = 2; // multiplier for turning speeds in "free movement" mode
-    private double slowTurnSpeedMult = 0.75;
+    private double turnSpeedMult = 0.9; // multiplier for turning speeds in "free movement" mode
+    private double slowTurnSpeedMult = 0.5;
 
     public void teleOpStep() {
     }
@@ -128,21 +128,21 @@ public class BaseTeleOp extends BaseController {
                     } else {
                         setMoveDir(rawMoveVector, CoordinateSystem.ROBOT);
                     }
-                    if (Math.abs(currentGamepadState.right_stick_x) > -1) {
+                    if (Math.abs(currentGamepadState.right_stick_x) > 0.05) {
                         setTargetHeading(localizer.getPoseEstimate().getHeading());
-                        setTurnVelocity(turnSpeedMult * -currentGamepadState.right_stick_x);
+                        setTurnVelocity(turnSpeedMult * -Math.pow(currentGamepadState.right_stick_x, 3));
                     } else {
-                        //applyTargetHeading();
+                        setTurnVelocity(0);
                     }
                 } else { // slow movement
                     setMoveDir(rawMoveVector.times(slowMoveSpeedMult), CoordinateSystem.ROBOT);
                     setTargetHeading(localizer.getPoseEstimate().getHeading());
-                    setTurnVelocity(slowTurnSpeedMult * -currentGamepadState.right_stick_x);
+                    setTurnVelocity(slowTurnSpeedMult * turnSpeedMult * -Math.pow(currentGamepadState.right_stick_x, 3));
                 }
             }
 
-            teleOpStep();
-            baseUpdate();
+            this.teleOpStep();
+            this.baseUpdate();
 
             // OTHER TELEMETRY AND POST-CALCULATION STUFF
             {

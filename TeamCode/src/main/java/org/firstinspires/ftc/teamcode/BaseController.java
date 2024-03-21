@@ -36,6 +36,8 @@ import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.localization.Localizer;
+import com.acmerobotics.roadrunner.path.Path;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
@@ -46,6 +48,7 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 enum CoordinateSystem {
     ROBOT,
@@ -80,16 +83,23 @@ public class BaseController extends LinearOpMode {
     private final TargetFollower yMoveDirFollower = new TargetFollower(DRIVE_ACCEL, DRIVE_JERK, DRIVE_VEL_SMOOTHING_THRESHOLD);
     private final TargetFollower turnVelFollower = new TargetFollower(DRIVE_TURN_ACCEL, DRIVE_TURN_JERK, DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
 
+    List<LynxModule> hubs;
+
     // rotation stuff
     public final double RIGHT_ANGLE = Math.PI/2.0;
 
     private double lastTick = 0.0;
+    public static double zeroHeading = 0;
     public double deltaTime = 0.0;
 
     public boolean useSmoothMovement = true;
 
+    private Path pathToFollow;
+    public boolean isFollowingPath;
+    private double projectedPathPoint = 0;
+
     public void applyTargetHeading() {
-        double turnDiff = normalizeAngle(targetHeading - localizer.getPoseEstimate().getHeading(), AngleUnit.RADIANS);
+        double turnDiff = normalizeAngle(targetHeading - (drive.getRawExternalHeading() - zeroHeading), AngleUnit.RADIANS);
         telemetry.addData("turn diff", turnDiff);
         double tvel = Math.max(Math.min(turnDiff, ROTATION_DAMPENING_THRESHOLD), -ROTATION_DAMPENING_THRESHOLD)/ ROTATION_DAMPENING_THRESHOLD * ROTATION_POWER;
         if (Math.abs(tvel) > 0.02) {
@@ -107,6 +117,10 @@ public class BaseController extends LinearOpMode {
         targetHeading = normalizeAngle(thead, AngleUnit.RADIANS);
     }
 
+    public void setCurrentHeadingAs(double angle) {
+        zeroHeading = drive.getRawExternalHeading() - angle;
+    }
+
     public double getTargetHeading() {
         return targetHeading;
     }
@@ -119,7 +133,7 @@ public class BaseController extends LinearOpMode {
         double transformedHeading;
         Pose2d transformedDir;
         double rawHeading = Math.atan2(dir.getY(), dir.getX());
-        double robotHeading = localizer.getPoseEstimate().getHeading();
+        double robotHeading = drive.getRawExternalHeading() - zeroHeading;
         if (space == CoordinateSystem.WORLD) {
             transformedHeading = rawHeading - robotHeading;
         } else if (space == CoordinateSystem.TARGET_HEADING) {
@@ -132,10 +146,48 @@ public class BaseController extends LinearOpMode {
         moveDir = new Vector2d(Math.cos(transformedHeading), Math.sin(transformedHeading)).times(dir.distTo(new Vector2d()));
 
     }
+
+    public void followPath(Path path) {
+        pathToFollow = path;
+        projectedPathPoint = -1;
+        isFollowingPath = true;
+    }
+
+    private void calculateMovementsForPath() {
+        if (isFollowingPath) {
+            Pose2d poseEstimate = drive.getLocalizer().getPoseEstimate();
+            projectedPathPoint = pathToFollow.project(poseEstimate.vec(), projectedPathPoint == -1 ? null : projectedPathPoint);
+            Pose2d poseToTarget = pathToFollow.get(projectedPathPoint);
+            Pose2d vel = pathToFollow.deriv(projectedPathPoint);
+            Vector2d offCourseCorrectionTerm = poseToTarget.vec().minus(poseEstimate.vec());
+            double distToTarget = offCourseCorrectionTerm.distTo(new Vector2d());
+            if (distToTarget > 0) {
+                offCourseCorrectionTerm = offCourseCorrectionTerm
+                        .div(distToTarget)
+                    .times(
+                        map(distToTarget, 0, 5, 0, 20, true)
+                );
+            }
+            setMoveDir(vel.vec().times(20).plus(offCourseCorrectionTerm), CoordinateSystem.WORLD);
+            setTargetHeading(poseToTarget.getHeading());
+            applyTargetHeading();
+        }
+    }
+
+    public void stopFollowingPath() {
+        isFollowingPath = false;
+    }
+
     public void baseInitialize() {
 
         drive = new SampleMecanumDrive(hardwareMap);
         localizer = drive.getLocalizer();
+
+        hubs = hardwareMap.getAll(LynxModule.class);
+
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
 
         // INITIALIZATION TELEMETRY
         {
@@ -161,7 +213,9 @@ public class BaseController extends LinearOpMode {
         deltaTime = runtime.seconds() - lastTick;
         lastTick = runtime.seconds();
 
-
+        for (LynxModule hub : hubs) {
+            hub.clearBulkCache();
+        }
 
         // OTHER TELEMETRY AND POST-CALCULATION STUFF
         {
@@ -180,18 +234,23 @@ public class BaseController extends LinearOpMode {
             turnVelFollower.setVelocityDampeningThreshold(DRIVE_TURN_VEL_SMOOTHING_THRESHOLD);
             turnVelFollower.setMaxVelocity(DRIVE_TURN_ACCEL);
             turnVelFollower.setMaxAcceleration(DRIVE_TURN_JERK);
-            if (!drive.isBusy()) {
-                drive.setDriveSignal(new DriveSignal(
+            if (isFollowingPath) {
+                calculateMovementsForPath();
+                drive.setWeightedDrivePower(new Pose2d(moveDir, turnVelocity));
+            } else if (!drive.isBusy()) {
+                drive.setWeightedDrivePower(
                         useSmoothMovement ? new Pose2d(
-                                xMoveDirFollower.getCurrentPosition() * 50,
-                                yMoveDirFollower.getCurrentPosition() * 50,
-                                turnVelocity * 3.25
+                                xMoveDirFollower.getCurrentPosition(),
+                                yMoveDirFollower.getCurrentPosition(),
+                                turnVelocity
                         )
-                                : new Pose2d(moveDir, turnVelocity * 3.25)
-                ));
+                                : new Pose2d(moveDir, turnVelocity)
+                );
             }
             drive.update();
+            telemetry.addData("Drive Busy?", drive.isBusy());
             telemetry.addData("Run Time", runtime.toString());
+            telemetry.addData("Updates per Second", 1/deltaTime);
             telemetry.addData("Local Movement Vector", moveDir);
             //telemetry.addData("Local Displacement from Motor Encoders", displacement);
             Vector2d displacement = localizer.getPoseEstimate().vec();
@@ -205,5 +264,11 @@ public class BaseController extends LinearOpMode {
     @Override
     public void runOpMode() {
 
+    }
+
+    public void stopOpMode() {
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.OFF);
+        }
     }
 }

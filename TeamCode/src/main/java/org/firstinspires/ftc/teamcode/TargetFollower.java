@@ -66,7 +66,6 @@ public class TargetFollower {
         double deltaTime = runtime.seconds() - lastTime;
         lastTime = runtime.seconds();
 
-
         currentAcceleration = maxAcceleration; //clamp(currentAcceleration + deltaTime * 20 * maxAcceleration, 0, maxAcceleration);
         currentVelocity = clamp(
                 currentVelocity + Math.signum(targetPosition - currentPosition) * (currentAcceleration * deltaTime),

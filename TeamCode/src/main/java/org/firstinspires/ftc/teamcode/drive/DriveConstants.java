@@ -46,7 +46,7 @@ public class DriveConstants {
      */
     public static double WHEEL_RADIUS = 96.0/25.4/2; // in
     public static double GEAR_RATIO = 1; // output (wheel) speed / input (motor) speed
-    public static double TRACK_WIDTH = 325.4/25.4; // in
+    public static double TRACK_WIDTH = 13; // in
     public static double WHEEL_BASE = 240.0/25.4;
 
     /*
@@ -55,9 +55,9 @@ public class DriveConstants {
      * motor encoders or have elected not to use them for velocity control, these values should be
      * empirically tuned.
      */
-    public static double kV = 0.01523; // 1.0 / rpmToVelocity(MAX_RPM);
-    public static double kA = 0.00001;
-    public static double kStatic = 0.07109;
+    public static double kV = 0.016; // 1.0 / rpmToVelocity(MAX_RPM);
+    public static double kA = 0.001;
+    public static double kStatic = 0.14;
 
     /*
      * These values are used to generate the trajectories for you robot. To ensure proper operation,
@@ -66,18 +66,23 @@ public class DriveConstants {
      * small and gradually increase them later after everything is working. All distance units are
      * inches.
      */
-    public static double MAX_VEL = 45; // in/sec;
-    public static double MAX_ACCEL = 30; // in/sec^2
-    public static double MAX_ANG_VEL = Math.toRadians(60);
-    public static double MAX_ANG_ACCEL = Math.toRadians(60);
+    public static double MAX_VEL = 30; // in/sec;
+    public static double MAX_ACCEL = 20; // in/sec^2
+    public static double MAX_ANG_VEL = Math.PI * 2 * 0.7;
+    public static double MAX_ANG_ACCEL = Math.PI * 2 * 0.6;
+    public static double ROBOT_WIDTH = 15.14;
+    public static double CLAW_DIST = 14.5;//in
+    public static final double FIELD_SIZE = 141.345;
+    public static final double TILE_SIZE = FIELD_SIZE/6.0;
+    public static double DIST_FROM_TILE_CENTER_WHEN_AUTO_INIT = (TILE_SIZE - ROBOT_WIDTH)/2;
 
     /*
      * Adjust the orientations here to match your robot. See the FTC SDK documentation for details.
      */
     public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
-            RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+            RevHubOrientationOnRobot.LogoFacingDirection.UP;
     public static RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIR =
-            RevHubOrientationOnRobot.UsbFacingDirection.DOWN;
+            RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD;
 
 
     public static double encoderTicksToInches(double ticks) {

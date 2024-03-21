@@ -29,62 +29,33 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.ROBOT_WIDTH;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.TILE_SIZE;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
+
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.path.Path;
-import com.acmerobotics.roadrunner.path.PathBuilder;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.acmerobotics.roadrunner.trajectory.TrajectoryGenerator;
-import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.TranslationalVelocityConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.opencv.core.Size;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
+
 @Autonomous
-public class TestAutoOp extends BaseAutoOp {
+public class CenterStageBlueLeft20AutoOp extends CenterStageBaseBackstageAutoOp {
 
-    public void autoOpInitialize () {
-
-        /*TrajectoryGenerator trajGen = new TrajectoryGenerator();
-
-        Path path = new PathBuilder(new Pose2d(0, 0, 0))
-                .splineTo(new Vector2d(-TILE_SIZE, TILE_SIZE), Math.PI)
-                .lineTo(new Vector2d(
-                                -TILE_SIZE * 0.5,
-                                TILE_SIZE * 1.5
-                        )
-                )
-                // split this into two phases?
-                .lineTo(new Vector2d(0, 0))
-                .lineTo(new Vector2d(TILE_SIZE * 3, 0))
-                .build();
-
-        TrajectoryVelocityConstraint velConstraint = new MinVelocityConstraint(Arrays.asList(
-                new TranslationalVelocityConstraint(20),
-                new AngularVelocityConstraint(1)
-        ));
-        TrajectoryAccelerationConstraint accelConstraint = new ProfileAccelerationConstraint(40);*/
-        Trajectory traj = drive.trajectoryBuilder(new Pose2d())
-                .splineTo(new Vector2d(30, 30), 0)
-                .build();
-        addPhase(() -> {
-
-            //
-            drive.followTrajectoryAsync(traj);
-        }, () -> {
-            telemetry.addData("Hello chat", ":)");
-        }, () -> false);
-
+    public void autoOpInitialize() {
+        this.initialHeading = Math.PI;
+        this.mirrorFactor = -1;
+        this.spikeMarkAngle = Math.PI;
+        this.parkPosition = ParkPosition.CORNER;
+        this.detectionColor = new double[]{0, 0, 255};
+        super.autoOpInitialize();
     }
 
 }

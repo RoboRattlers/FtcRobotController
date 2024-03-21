@@ -29,65 +29,67 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.util.MoreMath.lerp;
+import static org.firstinspires.ftc.teamcode.util.MoreMath.map;
+
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
 @Config
 
-public class PoseTuner extends LinearOpMode {
+public class PokerAddTuner2 extends LinearOpMode {
 
-
-    public static double pusher_pos = 0.2;
-    public static double pokerRotator_pos = 0.5;
-    public static double armRotator_pos = 300;
-    public static double armExtender_pos = 0;
-    public static double shoulder_pos = 0.5;
+    public static double shoulder_pos = 0.7;
     public static double wrist_pos = 0.5;
-    public static double elbow_pos = 0.5;
-    public static double claw_pos = 0.5;
-    public static double shelf_pos = 0;
+    public static double pokerRotation = 0;
+    public static double shelfRotation = 0;
+
+    private static Vector2d pokerEndpointOffset = new Vector2d(-53, 200);
+    private static Vector2d rotatorShaftXOffset = new Vector2d(-32, 0);
+    private static Vector2d rotatorShaftYOffset = new Vector2d(0, 240);
+    private static Vector2d pokerEndpoint = rotatorShaftXOffset.plus(rotatorShaftYOffset).plus(pokerEndpointOffset);
+    public static double startPokerEndpointX = pokerEndpoint.getX();
+    public static double startPokerEndpointY = pokerEndpoint.getY();
+    public static double endPokerEndpointX = pokerEndpoint.getX();
+    public static double endPokerEndpointY = pokerEndpoint.getY();
+    public static double oscillation_speed_mult = 2;
+    public static boolean clawOpen = true;
 
     @Override
     public void runOpMode() {
 
-        Servo clawShoulder = hardwareMap.get(Servo.class, "ClawShoulder"); // expansion hub servo 0
-        Servo clawElbow = hardwareMap.get(Servo.class, "ClawElbow"); // expansion hub servo 1
-        Servo clawWrist = hardwareMap.get(Servo.class, "ClawWrist"); // expansion hub servo 2
-        Servo clawOpener = hardwareMap.get(Servo.class, "ClawOpener"); // expansion hub servo 3
-        Servo clawShelf = hardwareMap.get(Servo.class, "ClawShelf");
-        Servo pokerPusher = hardwareMap.get(Servo.class, "PokerPusher"); // control hub servo 0
-        Servo pokerRotator = hardwareMap.get(Servo.class, "PokerRotator"); // control hub servo 1
-        DcMotorEx armExtender = hardwareMap.get(DcMotorEx.class,  "ArmExtender"); // expansion hub motor 1
-        DcMotorEx armRotator = hardwareMap.get(DcMotorEx.class, "ArmRotator"); // expansion hub motor 0
-
-        armRotator.setTargetPosition(300);
-        armRotator.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        armRotator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armExtender.setTargetPosition(0);
-        armExtender.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        armExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armExtender.setPower(0.5);
-        armRotator.setPower(0.1);
+        CenterStageHardware gameHardware = new CenterStageHardware(hardwareMap, telemetry);
+        ElapsedTime runtime = new ElapsedTime();
+        gameHardware.clawPose = ClawPose.LOAD;
+        gameHardware.setTargetArmRotation(500);
+        gameHardware.setTargetArmExtension(0);
+        gameHardware.update(true);
 
         waitForStart();
 
+
+
         while (opModeIsActive()) {
 
-            clawShoulder.setPosition(shoulder_pos);
-            clawWrist.setPosition(wrist_pos);
-            clawElbow.setPosition(elbow_pos);
-            clawOpener.setPosition(claw_pos);
-            clawShelf.setPosition(shelf_pos);
-            armRotator.setTargetPosition((int) armRotator_pos);
-            armExtender.setTargetPosition((int) armExtender_pos);
-            pokerPusher.setPosition(pusher_pos);
-            pokerRotator.setPosition(pokerRotator_pos);
+            double pos = map(Math.sin(runtime.seconds() * oscillation_speed_mult), -1, 1, 0, 1, true);
+            gameHardware.setIKPokerEndpoint(new Pose2d(
+                    lerp(startPokerEndpointX, endPokerEndpointX, pos),
+                    lerp(startPokerEndpointY, endPokerEndpointY, pos),
+                    pokerRotation
+            ));
 
+            gameHardware.clawPose = ClawPose.LOAD;
+            gameHardware.clawOpen = clawOpen;
+            gameHardware.clawShelf.setPosition(shelfRotation);
+            gameHardware.update(true);
             telemetry.update();
         }
     }
